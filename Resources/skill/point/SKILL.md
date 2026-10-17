@@ -1,25 +1,27 @@
 ---
 name: point
-description: Marc's narrated screen recordings from the Point app. Use when Marc says he recorded, showed or pointed at something ("the Point session", "what I just showed you", "see my recording", "fix what I pointed at"), or pastes a "New Point session" line.
+description: Marc's queue of things to fix from the Point app, where he points at things on screen and comments. Use when Marc says "work through Point", "fix what I pointed at", "check Point", refers to something he recorded or showed, or pastes a "New in Point" line.
 ---
 
 # Point
 
-Point records Marc talking about his screen while he points at things with the cursor. Each session holds numbered
-instructions for a coding agent (or the aligned timeline when no instructions were written), the Accessibility element
-under each point and a cropped screenshot per point (red ring = cursor, yellow box = the element's frame).
+Marc points at things on his screen with the cursor and says what is wrong. Every comment becomes an item in a queue:
+what he said, the element under the cursor (role, visible text, window, `identifier` when the app sets one, the parent
+elements) and a cropped screenshot (red ring = cursor, yellow box = the element's frame).
 
-## Read a session
+## Work through the queue
 
-- With the `point` MCP: `get_session` (no id = the latest; images included), `list_sessions`, `get_frame` for a full
-  screenshot.
-- Without the MCP: the folder `~/Point/sessions/<id>/`: `instructions.md` first, else `session.md`; crops in `crops/NN.jpg`
-  (NN = the point's [n]); full screenshots in `frames/`.
+1. `get_open_items` (point MCP) takes the open items for you, oldest first; no other agent gets them.
+2. For each item: look at its crop, find the code behind the element (grep its visible text first, then the identifier,
+   window and parents), make the change, check it.
+3. `mark_done` with the item's id and a one-line note (what changed, which file). Done items are never handed out again.
+4. An item you cannot do, or that needs Marc: `release_items` with a note saying why; it goes back to the queue.
+5. Call `get_open_items` again until it says there is nothing open. In your reply, list the ids you did.
 
-## How to act on it
+Do not ask Marc which items to do: the open ones are the ones to do. Ask only when an item is ambiguous, and then release
+it with the question as the note.
 
-1. Read the instructions and look at every crop before changing code.
-2. Find the code behind each element: its visible text, `identifier` (a source location when the app sets one), window and
-   the path of parent elements are the search keys. Grep for the visible text first.
-3. Do each numbered item; ask Marc about the open questions instead of guessing.
-4. In your reply, name the item numbers you handled.
+## Without the MCP
+
+Sessions are folders in `~/Point/sessions/<id>/`: `instructions.md` or `session.md`, crops in `crops/NN.jpg`, the item
+states in `state.json`. Prefer the MCP: it keeps the states right when several agents work.

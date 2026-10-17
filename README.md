@@ -40,13 +40,18 @@ Reprocess a session headless: `/Applications/Point.app/Contents/MacOS/Point --pr
 The plan and what comes later: `PLAN.md`.
 - Design check without a screen: `Point --render-ui <dir>` (window, permissions, rows, pill as PNGs).
 
-## For agents
+## For agents: the queue
 
-- After Stop the clipboard gets two short lines: what the session is about and where to read it (the `point` MCP's
-  `get_session` with the id, or the folder). Paste them into any agent.
-- `Point --mcp` is a local MCP server over stdio, no auth, read only over `~/Point/sessions`: `list_sessions`,
-  `get_session` (default the latest; instructions or timeline plus the crops as images), `get_frame`.
-- On launch from /Applications, Point registers it with Claude Code (`claude mcp add --scope user`), Codex
+- Every comment is an item: one per numbered instruction, or (without instructions) one per thing pointed at, with the
+  words said while the cursor rested there. Items are open, taken or done (`state.json` in the session folder).
+- After Stop the clipboard gets two lines ("New in Point, 2 things to fix …" and how to get them). The window shows
+  "N to fix" or "Done" per session and refreshes every 5 s.
+- `Point --mcp` is a local MCP server over stdio, no auth: `get_open_items` (takes the open items for the calling agent,
+  oldest first, with crops), `mark_done` (ids, note), `release_items` (ids, note: back to the queue), `list_sessions`,
+  `get_session`, `get_frame`. A taken item no one finished returns after two hours. One lock (`~/Point/.lock`) keeps
+  agents in separate processes from taking the same item.
+- On launch from /Applications, Point registers the MCP with Claude Code (`claude mcp add --scope user`), Codex
   (`~/.codex/config.toml`) and Cursor (`~/.cursor/mcp.json`) when not there yet, and links its skill
-  (`Resources/skill/point`) into `~/.claude/skills` and `~/.agents/skills`, as the Doppelganger skill is. Configs are backed
-  up first to `~/Library/Application Support/Point/backups/`. An entry named point that is not Point's is left alone.
+  (`Resources/skill/point`) into `~/.claude/skills` and `~/.agents/skills`. Configs are backed up first to
+  `~/Library/Application Support/Point/backups/`. An entry named point that is not Point's is left alone.
+- Tests against another folder: `POINT_SESSIONS=<dir> Point --mcp`.

@@ -109,10 +109,11 @@ struct SessionRowView: View {
         HStack(spacing: 10) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(row.title).font(.geist(13)).foregroundStyle(Ink.primary).lineLimit(1)
-                Text("\(Self.time.string(from: row.date)) · \(row.duration) s · \(row.points) points\(row.hasInstructions ? "" : " · timeline only")")
+                Text("\(Self.time.string(from: row.date)) · \(row.duration) s")
                     .font(.geist(11)).foregroundStyle(Ink.muted)
             }
             Spacer(minLength: 8)
+            if !hover { StatusPill(open: row.open, done: row.done) }
             if hover {
                 Button { state.open(row) } label: { Image(systemName: "folder") }.buttonStyle(SmallButton())
                 Button("Copy") { state.copy(row) }.buttonStyle(SmallButton(dark: true))
@@ -151,5 +152,22 @@ struct PillView: View {
         guard case .recording(let s) = state.phase else { return "0:00" }
         let t = max(0, Int(now.timeIntervalSince(s)))
         return String(format: "%d:%02d", t / 60, t % 60)
+    }
+}
+
+/// "2 to fix" (gold) or "Done" (green), Rocky's pill colours.
+struct StatusPill: View {
+    let open: Int
+    let done: Int
+    var body: some View {
+        if open + done > 0 {
+            let fixing = open > 0
+            Text(fixing ? "\(open) to fix" : "Done")
+                .font(.geist(11))
+                .foregroundStyle(fixing ? Color(hex: 0x6B5414) : Color(hex: 0x2F7A4B))
+                .padding(.horizontal, 8).padding(.vertical, 3)
+                .background(Capsule().fill(fixing ? Color(hex: 0xFFF7E0) : Color(hex: 0xF1FAF4)))
+                .overlay(Capsule().strokeBorder(fixing ? Color(hex: 0xF3E3B5) : Color(hex: 0xCFE8D8), lineWidth: 1))
+        }
     }
 }

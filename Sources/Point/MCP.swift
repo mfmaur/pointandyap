@@ -4,6 +4,8 @@ import Foundation
 /// `Point --mcp`: a local MCP server over stdio (newline-delimited JSON-RPC), no auth. It only reads ~/Point/sessions.
 enum MCPServer {
     static let protocolVersion = "2025-06-18"
+    /// The client's name from initialize, recorded on the items it takes and finishes.
+    nonisolated(unsafe) static var agent = "agent"
 
     static func run() {
         setvbuf(stdout, nil, _IOLBF, 0)
@@ -16,6 +18,7 @@ enum MCPServer {
             guard id != nil else { continue }   // notifications need no answer
             switch method {
             case "initialize":
+                if let c = params["clientInfo"] as? [String: Any], let n = c["name"] as? String, !n.isEmpty { agent = n }
                 let asked = params["protocolVersion"] as? String
                 reply(id, ["protocolVersion": asked ?? protocolVersion,
                            "capabilities": ["tools": [:]],
@@ -34,12 +37,29 @@ enum MCPServer {
     }
 
     static let instructions = """
-    Point records Marc talking about his screen while he points at things with the cursor. Each session has numbered \
-    instructions (instructions.md, or the aligned timeline session.md) with the element under each point and a cropped \
-    screenshot per point. Use get_session (default: the latest) when Marc refers to what he just recorded, showed or pointed at.
+    Point is Marc's queue of things to fix: he points at things on his screen and comments, and every comment becomes an \
+    item (what he said, the element under the cursor, a cropped screenshot). Work through the queue: get_open_items takes \
+    the open items for you, do each one, then mark_done with its id and a one-line note; release_items gives back what \
+    you could not do. Done items are never handed out again. get_session reads a whole recording.
     """
 
     static let tools: [[String: Any]] = [
+        ["name": "get_open_items",
+         "description": "The open items of Marc's Point queue, oldest first, each with its id, what he said, the element he pointed at and its crop (red ring = cursor, yellow box = element). By default they are taken for you so no other agent gets them; finish each with mark_done.",
+         "inputSchema": ["type": "object", "properties": [
+            "limit": ["type": "integer", "description": "How many, default 5"],
+            "take": ["type": "boolean", "description": "Mark them taken by you, default true; false only looks"],
+            "images": ["type": "boolean", "description": "Include the crops as images, default true"]]]],
+        ["name": "mark_done",
+         "description": "Mark Point items done once the change is made, so they are never handed out again.",
+         "inputSchema": ["type": "object", "required": ["ids"], "properties": [
+            "ids": ["type": "array", "items": ["type": "string"], "description": "Item ids, e.g. 2026-10-17_164301#2"],
+            "note": ["type": "string", "description": "One line: what you changed (file, commit)"]]]],
+        ["name": "release_items",
+         "description": "Give taken Point items back to the queue (you could not do them, or they need Marc); they are handed out again.",
+         "inputSchema": ["type": "object", "required": ["ids"], "properties": [
+            "ids": ["type": "array", "items": ["type": "string"]],
+            "note": ["type": "string", "description": "Why, for Marc or the next agent"]]]],
         ["name": "list_sessions",
          "description": "List recent Point recordings, newest first: id, time, length, number of points, first words.",
          "inputSchema": ["type": "object", "properties": ["limit": ["type": "integer", "description": "How many, default 10"]]]],
@@ -60,6 +80,10 @@ enum MCPServer {
 
     static func call(_ name: String, _ a: [String: Any]) -> [String: Any] {
         switch name {
+        case "get_open_items":
+            return openItems(limit: a["limit"] as? Int ?? 5, take: a["take"] as? Bool ?? true, images: a["images"] as? Bool ?? true)
+        case "mark_done": return setItems(a["ids"], status: "done", note: a["note"] as? String)
+        case "release_items": return setItems(a["ids"], status: "open", note: a["note"] as? String)
         case "list_sessions": return text(listSessions(limit: a["limit"] as? Int ?? 10))
         case "get_session": return getSession(a["id"] as? String, images: a["images"] as? Bool ?? true, timeline: a["timeline"] as? Bool ?? false)
         case "get_frame": return getFrame(a["id"] as? String, frame: a["frame"] as? String)
@@ -137,6 +161,34 @@ enum MCPServer {
         else { return error("could not read the frame") }
         return ["content": [["type": "text", "text": "\(d.path)/\(name)"],
                             ["type": "image", "data": data.base64EncodedString(), "mimeType": "image/jpeg"]]]
+    }
+
+    static func openItems(limit: Int, take: Bool, images: Bool) -> [String: Any] {
+        let items = Items.openItems(limit: max(1, min(limit, 20)), take: take, agent: agent)
+        guard !items.isEmpty else { return text("No open items. Everything Marc pointed at is done.") }
+        var content: [[String: Any]] = [["type": "text", "text":
+            "\(items.count) open item\(items.count == 1 ? "" : "s")\(take ? ", now taken by you" : ""). Do each, then mark_done with its id."]]
+        for i in items {
+            var t = "### Item \(i.id)\n\n\(i.body)"
+            if let note = i.note, !note.isEmpty { t += "\n\nNote from \(i.by ?? "an agent") when it gave this back: \(note)" }
+            content.append(["type": "text", "text": t])
+            if images {
+                for c in i.crops.prefix(4) {
+                    guard let data = try? Data(contentsOf: c) else { continue }
+                    content.append(["type": "image", "data": data.base64EncodedString(), "mimeType": "image/jpeg"])
+                }
+            }
+        }
+        return ["content": content]
+    }
+
+    static func setItems(_ raw: Any?, status: String, note: String?) -> [String: Any] {
+        let ids = (raw as? [String]) ?? (raw as? String).map { [$0] } ?? []
+        guard !ids.isEmpty else { return error("ids missing") }
+        let r = Items.set(ids, status: status, agent: agent, note: note)
+        var s = r.changed.isEmpty ? "" : "\(status == "done" ? "Done" : "Back in the queue"): \(r.changed.joined(separator: ", "))."
+        if !r.missing.isEmpty { s += (s.isEmpty ? "" : " ") + "Not found: \(r.missing.joined(separator: ", "))." }
+        return r.changed.isEmpty ? error(s) : text(s)
     }
 
     // MARK: Wire

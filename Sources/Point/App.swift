@@ -78,6 +78,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         state.ownUI = { [weak self] in self?.pillRect() }
         state.onRecordingChanged = { [weak self] on in self?.recording(on) }
         DispatchQueue.global(qos: .utility).async { AgentInstall.run() }
+        // Agents mark items done from their own processes: read the states again while the window shows.
+        Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated { if let self, self.window.isVisible, self.state.phase == .idle { self.state.loadSessions() } }
+        }
         state.refreshAccess()
         doubleControl = DoubleControl { [weak self] in self?.state.toggle() }
         state.loadSessions()
@@ -85,7 +89,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         NSApp.activate(ignoringOtherApps: true)
     }
 
-    func applicationDidBecomeActive(_ note: Notification) { state.refreshAccess() }
+    func applicationDidBecomeActive(_ note: Notification) { state.refreshAccess(); state.loadSessions() }
 
     func applicationShouldHandleReopen(_ app: NSApplication, hasVisibleWindows: Bool) -> Bool {
         if case .recording = state.phase { return false }

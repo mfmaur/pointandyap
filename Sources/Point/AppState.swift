@@ -10,6 +10,8 @@ struct SessionRow: Identifiable, Equatable {
     var points: Int
     var title: String
     var hasInstructions: Bool
+    var open = 0
+    var done = 0
 }
 
 @MainActor
@@ -89,21 +91,15 @@ final class AppState: ObservableObject {
         }
     }
 
-    /// Two lines an agent can act on: what the session is, and where to read it.
+    /// Two lines an agent can act on: what is new, and how to get it.
     static func pointer(_ dir: URL) -> String {
-        let id = dir.lastPathComponent
+        let items = Items.items(in: dir, state: Items.readState(dir)).items
+        let open = items.filter { $0.status != "done" }
         var about = ""
-        if let w = try? Data(contentsOf: dir.appendingPathComponent("transcript.json")),
-           let words = try? JSONDecoder().decode([Word].self, from: w), !words.isEmpty {
-            about = " \"" + words.prefix(10).map(\.text).joined(separator: " ") + (words.count > 10 ? "…" : "") + "\""
-        }
-        var stats = ""
-        if let data = try? Data(contentsOf: dir.appendingPathComponent("events.json")),
-           let e = try? JSONDecoder.iso.decode(SessionEvents.self, from: data) {
-            stats = " (\(Int(e.duration.rounded())) s, \(e.points.count) points)"
-        }
-        return "New Point session\(about)\(stats).\n"
-            + "Read it with the point MCP: get_session id \"\(id)\", or open \(dir.path)/"
+        if let first = open.first ?? items.first { about = ": \"\(first.title)…\"" }
+        let count = open.count == 1 ? "1 thing to fix" : "\(open.count) things to fix"
+        return "New in Point, \(count)\(about)\n"
+            + "Work through them with the point MCP: get_open_items, then mark_done each (session \(dir.lastPathComponent), \(dir.path)/)."
     }
 
     private func copyPointer(_ dir: URL) { copy(Self.pointer(dir)) }
@@ -139,8 +135,10 @@ final class AppState: ObservableObject {
             } else if phase == .processing {
                 title = "Writing instructions…"
             }
+            let c = Items.counts(dir)
             return SessionRow(dir: dir, date: e.started, duration: Int(e.duration.rounded()), points: e.points.count,
-                              title: title, hasInstructions: fm.fileExists(atPath: dir.appendingPathComponent("instructions.md").path))
+                              title: title, hasInstructions: fm.fileExists(atPath: dir.appendingPathComponent("instructions.md").path),
+                              open: c.open, done: c.done)
         }
     }
 }

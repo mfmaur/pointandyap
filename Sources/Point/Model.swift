@@ -57,7 +57,9 @@ struct SessionEvents: Codable {
 struct Word: Codable { var text: String; var start: Double; var end: Double }
 
 enum Paths {
-    static let root = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Point/sessions")
+    /// ~/Point/sessions; POINT_SESSIONS points elsewhere (tests).
+    static let root = ProcessInfo.processInfo.environment["POINT_SESSIONS"].map { URL(fileURLWithPath: $0) }
+        ?? FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Point/sessions")
     static let support = FileManager.default.homeDirectoryForCurrentUser
         .appendingPathComponent("Library/Application Support/Point")
     static var keyFile: URL { support.appendingPathComponent("anthropic-key") }
