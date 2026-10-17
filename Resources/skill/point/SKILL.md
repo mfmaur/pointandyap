@@ -11,7 +11,9 @@ elements) and a cropped screenshot (red ring = cursor, yellow box = the element'
 
 ## Work through the queue
 
-1. `get_open_items` (point MCP) takes the open items for you, oldest first; no other agent gets them.
+1. `get_open_items` (point MCP) marks the open items in progress by you, oldest first, and returns them; no other agent
+   gets them. To pick specific ones instead: `get_open_items` with `take: false`, then `start_items` with their ids.
+   `list_items` shows what is open, in progress (by which agent) and done.
 2. For each item: look at its crop, find the code behind the element (grep its visible text first, then the identifier,
    window and parents), make the change, check it.
 3. `mark_done` with the item's id and a one-line note (what changed, which file). Done items are never handed out again.

@@ -11,6 +11,7 @@ struct SessionRow: Identifiable, Equatable {
     var title: String
     var hasInstructions: Bool
     var open = 0
+    var working = 0
     var done = 0
 }
 
@@ -94,7 +95,7 @@ final class AppState: ObservableObject {
     /// Two lines an agent can act on: what is new, and how to get it.
     static func pointer(_ dir: URL) -> String {
         let items = Items.items(in: dir, state: Items.readState(dir)).items
-        let open = items.filter { $0.status != "done" }
+        let open = items.filter { $0.status == "open" }
         var about = ""
         if let first = open.first ?? items.first { about = ": \"\(first.title)…\"" }
         let count = open.count == 1 ? "1 thing to fix" : "\(open.count) things to fix"
@@ -138,7 +139,7 @@ final class AppState: ObservableObject {
             let c = Items.counts(dir)
             return SessionRow(dir: dir, date: e.started, duration: Int(e.duration.rounded()), points: e.points.count,
                               title: title, hasInstructions: fm.fileExists(atPath: dir.appendingPathComponent("instructions.md").path),
-                              open: c.open, done: c.done)
+                              open: c.open, working: c.working, done: c.done)
         }
     }
 }

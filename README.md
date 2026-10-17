@@ -43,12 +43,12 @@ The plan and what comes later: `PLAN.md`.
 ## For agents: the queue
 
 - Every comment is an item: one per numbered instruction, or (without instructions) one per thing pointed at, with the
-  words said while the cursor rested there. Items are open, taken or done (`state.json` in the session folder).
+  words said while the cursor rested there. Items are open, in progress (by which agent) or done (`state.json` in the session folder).
 - After Stop the clipboard gets two lines ("New in Point, 2 things to fix …" and how to get them). The window shows
   "N to fix" or "Done" per session and refreshes every 5 s.
-- `Point --mcp` is a local MCP server over stdio, no auth: `get_open_items` (takes the open items for the calling agent,
-  oldest first, with crops), `mark_done` (ids, note), `release_items` (ids, note: back to the queue), `list_sessions`,
-  `get_session`, `get_frame`. A taken item no one finished returns after two hours. One lock (`~/Point/.lock`) keeps
+- `Point --mcp` is a local MCP server over stdio, no auth: `get_open_items` (marks the open items in progress by the calling
+  agent, oldest first, with crops), `start_items` (specific ids), `list_items` (every item with its state), `mark_done` (ids, note), `release_items` (ids, note: back to the queue), `list_sessions`,
+  `get_session`, `get_frame`. An item in progress that no one finished returns after two hours. One lock (`~/Point/.lock`) keeps
   agents in separate processes from taking the same item.
 - On launch from /Applications, Point registers the MCP with Claude Code (`claude mcp add --scope user`), Codex
   (`~/.codex/config.toml`) and Cursor (`~/.cursor/mcp.json`) when not there yet, and links its skill

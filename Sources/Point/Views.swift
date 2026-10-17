@@ -113,7 +113,7 @@ struct SessionRowView: View {
                     .font(.geist(11)).foregroundStyle(Ink.muted)
             }
             Spacer(minLength: 8)
-            if !hover { StatusPill(open: row.open, done: row.done) }
+            if !hover { StatusPill(open: row.open, working: row.working, done: row.done) }
             if hover {
                 Button { state.open(row) } label: { Image(systemName: "folder") }.buttonStyle(SmallButton())
                 Button("Copy") { state.copy(row) }.buttonStyle(SmallButton(dark: true))
@@ -155,19 +155,23 @@ struct PillView: View {
     }
 }
 
-/// "2 to fix" (gold) or "Done" (green), Rocky's pill colours.
+/// "2 to fix" (gold), "1 in progress" (grey) or "Done" (green), Rocky's pill colours.
 struct StatusPill: View {
     let open: Int
+    let working: Int
     let done: Int
     var body: some View {
-        if open + done > 0 {
-            let fixing = open > 0
-            Text(fixing ? "\(open) to fix" : "Done")
-                .font(.geist(11))
-                .foregroundStyle(fixing ? Color(hex: 0x6B5414) : Color(hex: 0x2F7A4B))
-                .padding(.horizontal, 8).padding(.vertical, 3)
-                .background(Capsule().fill(fixing ? Color(hex: 0xFFF7E0) : Color(hex: 0xF1FAF4)))
-                .overlay(Capsule().strokeBorder(fixing ? Color(hex: 0xF3E3B5) : Color(hex: 0xCFE8D8), lineWidth: 1))
+        HStack(spacing: 4) {
+            if working > 0 { pill("\(working) in progress", 0x3A3C41, 0xF3F3F5, 0xE3E4E7) }
+            if open > 0 { pill("\(open) to fix", 0x6B5414, 0xFFF7E0, 0xF3E3B5) }
+            if open == 0 && working == 0 && done > 0 { pill("Done", 0x2F7A4B, 0xF1FAF4, 0xCFE8D8) }
         }
+    }
+
+    private func pill(_ t: String, _ text: UInt32, _ bg: UInt32, _ line: UInt32) -> some View {
+        Text(t).font(.geist(11)).foregroundStyle(Color(hex: text))
+            .padding(.horizontal, 8).padding(.vertical, 3)
+            .background(Capsule().fill(Color(hex: bg)))
+            .overlay(Capsule().strokeBorder(Color(hex: line), lineWidth: 1))
     }
 }

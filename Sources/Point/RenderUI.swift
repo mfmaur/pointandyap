@@ -9,8 +9,8 @@ enum RenderUI {
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         let s = AppState()
         s.sessions = [
-            SessionRow(dir: dir, date: Date(), duration: 38, points: 5, title: "This button should be blue, not grey, and here", hasInstructions: true, open: 2, done: 1),
-            SessionRow(dir: dir.appendingPathComponent("b"), date: Date().addingTimeInterval(-3600), duration: 12, points: 2, title: "The date is wrong, it should say today", hasInstructions: false, open: 0, done: 3),
+            SessionRow(dir: dir, date: Date(), duration: 38, points: 5, title: "This button should be blue, not grey, and here", hasInstructions: true, open: 1, working: 1, done: 1),
+            SessionRow(dir: dir.appendingPathComponent("b"), date: Date().addingTimeInterval(-3600), duration: 12, points: 2, title: "The date is wrong, it should say today", hasInstructions: false, open: 0, working: 0, done: 3),
         ]
         s.mic = true; s.screen = true; s.ax = true
         write(MainView(state: s), "window.png", dir)

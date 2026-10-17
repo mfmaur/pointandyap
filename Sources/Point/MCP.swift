@@ -45,18 +45,26 @@ enum MCPServer {
 
     static let tools: [[String: Any]] = [
         ["name": "get_open_items",
-         "description": "The open items of Marc's Point queue, oldest first, each with its id, what he said, the element he pointed at and its crop (red ring = cursor, yellow box = element). By default they are taken for you so no other agent gets them; finish each with mark_done.",
+         "description": "The open items of Marc's Point queue, oldest first, each with its id, what he said, the element he pointed at and its crop (red ring = cursor, yellow box = element). By default they are marked in progress by you, so no other agent gets them; finish each with mark_done.",
          "inputSchema": ["type": "object", "properties": [
             "limit": ["type": "integer", "description": "How many, default 5"],
-            "take": ["type": "boolean", "description": "Mark them taken by you, default true; false only looks"],
+            "take": ["type": "boolean", "description": "Mark them in progress by you, default true; false only looks"],
             "images": ["type": "boolean", "description": "Include the crops as images, default true"]]]],
         ["name": "mark_done",
          "description": "Mark Point items done once the change is made, so they are never handed out again.",
          "inputSchema": ["type": "object", "required": ["ids"], "properties": [
             "ids": ["type": "array", "items": ["type": "string"], "description": "Item ids, e.g. 2026-10-17_164301#2"],
             "note": ["type": "string", "description": "One line: what you changed (file, commit)"]]]],
+        ["name": "start_items",
+         "description": "Mark specific open Point items in progress by you (after looking with take false), so no other agent does them. Refuses items done or in progress by another agent.",
+         "inputSchema": ["type": "object", "required": ["ids"], "properties": [
+            "ids": ["type": "array", "items": ["type": "string"]]]]],
+        ["name": "list_items",
+         "description": "Every Point item with its state: open, in progress (by which agent, since when) or done (by whom, with the note). No images.",
+         "inputSchema": ["type": "object", "properties": [
+            "status": ["type": "string", "description": "open, in_progress or done; default all except done"]]]],
         ["name": "release_items",
-         "description": "Give taken Point items back to the queue (you could not do them, or they need Marc); they are handed out again.",
+         "description": "Give Point items you have in progress back to the queue (you could not do them, or they need Marc); they are handed out again.",
          "inputSchema": ["type": "object", "required": ["ids"], "properties": [
             "ids": ["type": "array", "items": ["type": "string"]],
             "note": ["type": "string", "description": "Why, for Marc or the next agent"]]]],
@@ -83,6 +91,8 @@ enum MCPServer {
         case "get_open_items":
             return openItems(limit: a["limit"] as? Int ?? 5, take: a["take"] as? Bool ?? true, images: a["images"] as? Bool ?? true)
         case "mark_done": return setItems(a["ids"], status: "done", note: a["note"] as? String)
+        case "start_items": return setItems(a["ids"], status: "in_progress", note: nil)
+        case "list_items": return listItems(a["status"] as? String)
         case "release_items": return setItems(a["ids"], status: "open", note: a["note"] as? String)
         case "list_sessions": return text(listSessions(limit: a["limit"] as? Int ?? 10))
         case "get_session": return getSession(a["id"] as? String, images: a["images"] as? Bool ?? true, timeline: a["timeline"] as? Bool ?? false)
@@ -165,9 +175,14 @@ enum MCPServer {
 
     static func openItems(limit: Int, take: Bool, images: Bool) -> [String: Any] {
         let items = Items.openItems(limit: max(1, min(limit, 20)), take: take, agent: agent)
-        guard !items.isEmpty else { return text("No open items. Everything Marc pointed at is done.") }
+        guard !items.isEmpty else {
+            let working = Items.all().filter { $0.status == "in_progress" }
+            if working.isEmpty { return text("No open items. Everything Marc pointed at is done.") }
+            let who = Set(working.compactMap(\.by)).sorted().joined(separator: ", ")
+            return text("No open items. \(working.count) in progress (\(who)); nothing else to do.")
+        }
         var content: [[String: Any]] = [["type": "text", "text":
-            "\(items.count) open item\(items.count == 1 ? "" : "s")\(take ? ", now taken by you" : ""). Do each, then mark_done with its id."]]
+            "\(items.count) open item\(items.count == 1 ? "" : "s")\(take ? ", now in progress by you" : ""). Do each, then mark_done with its id."]]
         for i in items {
             var t = "### Item \(i.id)\n\n\(i.body)"
             if let note = i.note, !note.isEmpty { t += "\n\nNote from \(i.by ?? "an agent") when it gave this back: \(note)" }
@@ -186,9 +201,27 @@ enum MCPServer {
         let ids = (raw as? [String]) ?? (raw as? String).map { [$0] } ?? []
         guard !ids.isEmpty else { return error("ids missing") }
         let r = Items.set(ids, status: status, agent: agent, note: note)
-        var s = r.changed.isEmpty ? "" : "\(status == "done" ? "Done" : "Back in the queue"): \(r.changed.joined(separator: ", "))."
-        if !r.missing.isEmpty { s += (s.isEmpty ? "" : " ") + "Not found: \(r.missing.joined(separator: ", "))." }
+        let verb = ["done": "Done", "in_progress": "In progress by you"][status] ?? "Back in the queue"
+        var s = r.changed.isEmpty ? "" : "\(verb): \(r.changed.joined(separator: ", "))."
+        if !r.missing.isEmpty { s += (s.isEmpty ? "" : " ") + "Not changed: \(r.missing.joined(separator: ", "))." }
         return r.changed.isEmpty ? error(s) : text(s)
+    }
+
+    static func listItems(_ status: String?) -> [String: Any] {
+        let all = Items.all()
+        let shown = status.map { st in all.filter { $0.status == st } } ?? all.filter { $0.status != "done" }
+        guard !shown.isEmpty else { return text(status == nil ? "Nothing open or in progress." : "No items \(status!).") }
+        let f = DateFormatter(); f.dateFormat = "d MMM HH:mm"
+        let rows = shown.map { i -> String in
+            var l = "- \(i.id) [\(i.status.replacingOccurrences(of: "_", with: " "))"
+            if let by = i.by, i.status != "open" { l += " by \(by)" }
+            if let at = i.at, i.status != "open" { l += " since \(f.string(from: at))" }
+            l += "] \"\(i.title)…\""
+            if let n = i.note, !n.isEmpty { l += ", note: \(n)" }
+            return l
+        }
+        let c = (all.filter { $0.status == "open" }.count, all.filter { $0.status == "in_progress" }.count, all.filter { $0.status == "done" }.count)
+        return text("\(c.0) open, \(c.1) in progress, \(c.2) done.\n" + rows.joined(separator: "\n"))
     }
 
     // MARK: Wire

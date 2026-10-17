@@ -1,7 +1,7 @@
 import Foundation
 
 /// The work queue: every session splits into items (one per numbered instruction, or per pointed sentence of the timeline
-/// when no instructions exist). Each item is open, taken by an agent, or done; the state lives in the session's state.json
+/// when no instructions exist). Each item is open, in progress (an agent works on it), or done; the state lives in the session's state.json
 /// and every change goes through one lock, so several agents can work at once.
 struct Item {
     var id: String            // "<session>#<n>"
@@ -10,7 +10,8 @@ struct Item {
     var title: String
     var body: String
     var crops: [URL]
-    var status: String        // open, taken, done
+    var status: String        // open, in_progress, done
+    var at: Date?
     var by: String?
     var note: String?
 }
@@ -22,7 +23,7 @@ struct ItemState: Codable {
 }
 
 enum Items {
-    static let lease: TimeInterval = 2 * 3600   // a taken item no one finished comes back after two hours
+    static let lease: TimeInterval = 2 * 3600   // an item in progress that no one finished comes back after two hours
 
     // MARK: Splitting a session
 
@@ -35,8 +36,10 @@ enum Items {
             out[i].id = "\(id)#\(out[i].n)"
             out[i].session = id
             if let e = state?.items[String(out[i].n)] {
-                out[i].status = e.status == "taken" && Date().timeIntervalSince(e.at) > lease ? "open" : e.status
-                out[i].by = e.by; out[i].note = e.note
+                // "taken" is the older name of in_progress.
+                let working = e.status == "taken" || e.status == "in_progress"
+                out[i].status = working ? (Date().timeIntervalSince(e.at) > lease ? "open" : "in_progress") : e.status
+                out[i].by = e.by; out[i].note = e.note; out[i].at = e.at
             }
         }
         return (source, out)
@@ -49,7 +52,7 @@ enum Items {
             guard let c = cur else { return }
             let body = (head + ["", "## \(c.n). \(c.title)"] + c.lines).joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
             out.append(Item(id: "", session: "", n: c.n, title: c.title, body: body, crops: cropPaths(in: c.lines.joined(separator: "\n"), dir: dir),
-                            status: "open"))
+                            status: "open", at: nil))
         }
         for line in text.components(separatedBy: "\n") {
             if line.hasPrefix("---") && cur != nil { break }
@@ -129,7 +132,7 @@ enum Items {
                 lines.append(l)
             }
             let title = g.words.prefix(10).map(\.text).joined(separator: " ")
-            return Item(id: "", session: "", n: i + 1, title: title, body: lines.joined(separator: "\n"), crops: crops, status: "open")
+            return Item(id: "", session: "", n: i + 1, title: title, body: lines.joined(separator: "\n"), crops: crops, status: "open", at: nil)
         }
     }
 
@@ -161,7 +164,7 @@ enum Items {
             .sorted { $0.lastPathComponent < $1.lastPathComponent }
     }
 
-    /// Open items oldest first; with `take`, they are marked taken by `agent` before they are returned.
+    /// Open items oldest first; with `take`, they are marked in progress by `agent` before they are returned.
     static func openItems(limit: Int, take: Bool, agent: String) -> [Item] {
         locked {
             var out: [Item] = []
@@ -172,10 +175,10 @@ enum Items {
                 guard !free.isEmpty else { continue }
                 if take {
                     if st == nil { st = ItemState(source: source) }
-                    for i in free { st!.items[String(i.n)] = .init(status: "taken", by: agent, at: Date(), note: nil) }
+                    for i in free { st!.items[String(i.n)] = .init(status: "in_progress", by: agent, at: Date(), note: nil) }
                     writeState(st!, dir)
                 }
-                out += free.map { var i = $0; if take { i.status = "taken"; i.by = agent }; return i }
+                out += free.map { var i = $0; if take { i.status = "in_progress"; i.by = agent; i.at = Date() }; return i }
             }
             return out
         }
@@ -195,6 +198,9 @@ enum Items {
                 if st == nil { st = ItemState(source: source) }
                 for id in list {
                     guard let item = items.first(where: { $0.id == id }) else { missing.append(id); continue }
+                    if status == "in_progress", item.status == "done" || (item.status == "in_progress" && item.by != agent) {
+                        missing.append("\(id) (\(item.status == "done" ? "done" : "in progress by \(item.by ?? "another agent")"))"); continue
+                    }
                     st!.items[String(item.n)] = .init(status: status, by: agent, at: Date(), note: note)
                     changed.append(id)
                 }
@@ -204,10 +210,13 @@ enum Items {
         }
     }
 
-    /// Counts for the window: open (including taken) and done.
-    static func counts(_ dir: URL) -> (open: Int, done: Int) {
+    /// Counts for the window.
+    static func counts(_ dir: URL) -> (open: Int, working: Int, done: Int) {
         let items = Self.items(in: dir, state: readState(dir)).items
-        let done = items.filter { $0.status == "done" }.count
-        return (items.count - done, done)
+        return (items.filter { $0.status == "open" }.count, items.filter { $0.status == "in_progress" }.count,
+                items.filter { $0.status == "done" }.count)
     }
+
+    /// Every item, oldest first, for an overview.
+    static func all() -> [Item] { sessionDirs().flatMap { items(in: $0, state: readState($0)).items } }
 }
