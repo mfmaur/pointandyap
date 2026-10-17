@@ -61,6 +61,15 @@ final class AppState: ObservableObject {
         onRecordingChanged?(true)
     }
 
+    /// Double Control: start when idle, stop while recording.
+    func toggle() {
+        switch phase {
+        case .idle: if allowed { start() } else { NSSound(named: "Basso")?.play() }
+        case .recording: stop()
+        case .processing: break
+        }
+    }
+
     func stop() {
         guard case .recording = phase, let r = recorder else { return }
         recorder = nil

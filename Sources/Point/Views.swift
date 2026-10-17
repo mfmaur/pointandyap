@@ -32,7 +32,7 @@ struct MainView: View {
             .disabled(state.phase != .idle || !state.allowed)
             .opacity(state.allowed ? 1 : 0.4)
 
-            Text("Rest the cursor on what you mean while you say “this” or “here”.")
+            Text("Or press Control twice. Rest the cursor on what you mean.")
                 .font(.geist(12)).foregroundStyle(Ink.faint).padding(.top, 10)
 
             Text("RECENT").font(.geist(11, .medium)).foregroundStyle(Ink.faint).tracking(0.6)
@@ -138,7 +138,7 @@ struct PillView: View {
             TimelineView(.periodic(from: .now, by: 1)) { ctx in
                 Text(elapsed(at: ctx.date)).font(.geistMono(13)).foregroundStyle(Ink.primary).frame(width: 40, alignment: .leading)
             }
-            Button("Stop", action: state.stop).buttonStyle(SmallButton(dark: true))
+            Button(action: state.stop) { Text("Stop  ") + Text("⌃⌃").font(.geistMono(11)).foregroundColor(Color(hex: 0x9A9DA4)) }.buttonStyle(SmallButton(dark: true))
         }
         .padding(.leading, 14).padding(.trailing, 6)
         .frame(height: 40)

@@ -37,6 +37,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private var window: NSWindow!
     private var pill: NSPanel!
     private var previousApp: NSRunningApplication?
+    private var doubleControl: DoubleControl?
 
     func applicationDidFinishLaunching(_ note: Notification) {
         NSApp.mainMenu = makeMenu()
@@ -53,7 +54,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         window.center()
         window.setFrameAutosaveName("PointMain")
 
-        pill = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 150, height: 40), styleMask: [.borderless, .nonactivatingPanel],
+        pill = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 170, height: 40), styleMask: [.borderless, .nonactivatingPanel],
                        backing: .buffered, defer: false)
         pill.level = .statusBar
         pill.isFloatingPanel = true
@@ -65,7 +66,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         pill.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         pill.appearance = NSAppearance(named: .aqua)
         let host = NSHostingView(rootView: PillView(state: state))
-        host.frame = NSRect(x: 0, y: 0, width: 150, height: 40)
+        host.frame = NSRect(x: 0, y: 0, width: 170, height: 40)
         pill.contentView = host
 
         NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main) { [weak self] n in
@@ -75,6 +76,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         state.ownUI = { [weak self] in self?.pillRect() }
         state.onRecordingChanged = { [weak self] on in self?.recording(on) }
         state.refreshAccess()
+        doubleControl = DoubleControl { [weak self] in self?.state.toggle() }
         state.loadSessions()
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
@@ -93,7 +95,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             window.orderOut(nil)
             let screen = NSScreen.main ?? NSScreen.screens[0]
             let f = screen.visibleFrame
-            pill.setFrameOrigin(NSPoint(x: f.midX - 75, y: f.maxY - 52))
+            pill.setFrameOrigin(NSPoint(x: f.midX - 85, y: f.maxY - 52))
             pill.orderFrontRegardless()
             // Hand the screen back to the app that was in front before Point.
             previousApp?.activate()
