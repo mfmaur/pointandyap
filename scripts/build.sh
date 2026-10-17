@@ -21,6 +21,12 @@ codesign --force --options runtime --timestamp --entitlements Resources/Point.en
   --sign "$CODESIGN_IDENTITY" "$APP"
 codesign --verify --strict --verbose=2 "$APP"
 
+# Never quit Point in the middle of a recording: the newest session has no events.json while its audio is still written.
+latest=$(ls -1d "$HOME"/Point/sessions/*/ 2>/dev/null | tail -1)
+if [ -n "$latest" ] && [ ! -f "$latest/events.json" ] && [ -f "$latest/audio.caf" ] \
+   && [ $(( $(date +%s) - $(stat -f %m "$latest/audio.caf") )) -lt 30 ]; then
+  echo "Point is recording; not reinstalling now. Run again after Stop." >&2; exit 1
+fi
 if pgrep -x Point >/dev/null; then pkill -x Point; sleep 1; fi
 rm -rf /Applications/Point.app
 cp -R "$APP" /Applications/Point.app
