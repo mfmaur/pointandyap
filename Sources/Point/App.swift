@@ -107,9 +107,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             // Hand the screen back to the app that was in front before Point.
             previousApp?.activate()
         } else {
+            // Stay out of the way: the session is in the list and on the clipboard; the Dock icon opens the window.
             pill.orderOut(nil)
-            window.makeKeyAndOrderFront(nil)
-            NSApp.activate(ignoringOtherApps: true)
         }
     }
 
