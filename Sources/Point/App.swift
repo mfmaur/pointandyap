@@ -5,6 +5,8 @@ import SwiftUI
 struct Main {
     static func main() {
         let args = CommandLine.arguments
+        // Local MCP server for coding agents: Point --mcp
+        if args.contains("--mcp") { MCPServer.run(); return }
         // Headless: Point --process <session dir> [--no-claude]
         if let i = args.firstIndex(of: "--process"), i + 1 < args.count {
             let dir = URL(fileURLWithPath: args[i + 1])
@@ -75,6 +77,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         }
         state.ownUI = { [weak self] in self?.pillRect() }
         state.onRecordingChanged = { [weak self] on in self?.recording(on) }
+        DispatchQueue.global(qos: .utility).async { AgentInstall.run() }
         state.refreshAccess()
         doubleControl = DoubleControl { [weak self] in self?.state.toggle() }
         state.loadSessions()

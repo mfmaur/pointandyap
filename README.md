@@ -39,3 +39,14 @@ Reprocess a session headless: `/Applications/Point.app/Contents/MacOS/Point --pr
 
 The plan and what comes later: `PLAN.md`.
 - Design check without a screen: `Point --render-ui <dir>` (window, permissions, rows, pill as PNGs).
+
+## For agents
+
+- After Stop the clipboard gets two short lines: what the session is about and where to read it (the `point` MCP's
+  `get_session` with the id, or the folder). Paste them into any agent.
+- `Point --mcp` is a local MCP server over stdio, no auth, read only over `~/Point/sessions`: `list_sessions`,
+  `get_session` (default the latest; instructions or timeline plus the crops as images), `get_frame`.
+- On launch from /Applications, Point registers it with Claude Code (`claude mcp add --scope user`), Codex
+  (`~/.codex/config.toml`) and Cursor (`~/.cursor/mcp.json`) when not there yet, and links its skill
+  (`Resources/skill/point`) into `~/.claude/skills` and `~/.agents/skills`, as the Doppelganger skill is. Configs are backed
+  up first to `~/Library/Application Support/Point/backups/`. An entry named point that is not Point's is left alone.

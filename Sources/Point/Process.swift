@@ -2,7 +2,8 @@ import Foundation
 
 /// From a recorded folder to session.md and instructions.md. Returns the text to put on the clipboard.
 enum Process {
-    static func run(dir: URL, useClaude: Bool = true, log: (String) -> Void = { NSLog("point: \($0)") }) async -> String {
+    static func run(dir: URL, useClaude: Bool = true, log: (String) -> Void = { NSLog("point: \($0)") },
+                    onTimeline: (@MainActor () -> Void)? = nil) async -> String {
         guard let data = try? Data(contentsOf: dir.appendingPathComponent("events.json")),
               let events = try? JSONDecoder.iso.decode(SessionEvents.self, from: data) else {
             return "Point: no events.json in \(dir.path)"
@@ -23,6 +24,7 @@ enum Process {
         log("\(words.count) words, \(events.points.count) points, \(events.frames.count) frames")
 
         let out = Builder.build(dir: dir, events: events, words: words)
+        if let onTimeline { await onTimeline() }
         guard useClaude, !words.isEmpty else { return out.markdown }
 
         // The API when a key works, else the local Claude Code CLI, else session.md as it is.

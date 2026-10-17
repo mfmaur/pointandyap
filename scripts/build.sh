@@ -16,6 +16,7 @@ cp Resources/Info.plist "$APP/Contents/Info.plist"
 mkdir -p "$APP/Contents/Resources/Fonts"
 cp Resources/AppIcon.icns "$APP/Contents/Resources/"
 cp Resources/Fonts/* "$APP/Contents/Resources/Fonts/"
+cp -R Resources/skill "$APP/Contents/Resources/"
 codesign --force --options runtime --timestamp --entitlements Resources/Point.entitlements \
   --sign "$CODESIGN_IDENTITY" "$APP"
 codesign --verify --strict --verbose=2 "$APP"

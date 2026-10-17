@@ -78,21 +78,38 @@ final class AppState: ObservableObject {
         Task {
             let dir = await r.stop()
             loadSessions()
-            let text = await Process.run(dir: dir)
-            copy(text)
-            NSSound(named: "Glass")?.play()
+            // The short pointer goes on the clipboard as soon as the timeline exists; the MCP and the folder fill in after.
+            _ = await Process.run(dir: dir, onTimeline: { [weak self] in
+                self?.copyPointer(dir)
+                NSSound(named: "Glass")?.play()
+                self?.say("Copied. Paste it into your agent")
+            })
             phase = .idle
             loadSessions()
-            say(FileManager.default.fileExists(atPath: dir.appendingPathComponent("instructions.md").path)
-                ? "Instructions copied" : "Timeline copied")
         }
     }
 
+    /// Two lines an agent can act on: what the session is, and where to read it.
+    static func pointer(_ dir: URL) -> String {
+        let id = dir.lastPathComponent
+        var about = ""
+        if let w = try? Data(contentsOf: dir.appendingPathComponent("transcript.json")),
+           let words = try? JSONDecoder().decode([Word].self, from: w), !words.isEmpty {
+            about = " \"" + words.prefix(10).map(\.text).joined(separator: " ") + (words.count > 10 ? "…" : "") + "\""
+        }
+        var stats = ""
+        if let data = try? Data(contentsOf: dir.appendingPathComponent("events.json")),
+           let e = try? JSONDecoder.iso.decode(SessionEvents.self, from: data) {
+            stats = " (\(Int(e.duration.rounded())) s, \(e.points.count) points)"
+        }
+        return "New Point session\(about)\(stats).\n"
+            + "Read it with the point MCP: get_session id \"\(id)\", or open \(dir.path)/"
+    }
+
+    private func copyPointer(_ dir: URL) { copy(Self.pointer(dir)) }
+
     func copy(_ row: SessionRow) {
-        let file = ["instructions.md", "session.md"].map { row.dir.appendingPathComponent($0) }
-            .first { FileManager.default.fileExists(atPath: $0.path) }
-        guard let file, let text = try? String(contentsOf: file, encoding: .utf8) else { say("Nothing to copy yet"); return }
-        copy(text)
+        copyPointer(row.dir)
         say("Copied")
     }
 
