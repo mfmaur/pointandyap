@@ -24,6 +24,9 @@ final class Recorder {
     private static let restRadius = 8.0
     private static let restTime = 0.35
 
+    /// Point's own UI (the pill), in global top-left points: nothing there is a point.
+    var ignore: (() -> CGRect?)?
+
     init() { dir = Paths.newSession() }
 
     private var now: Double { Date().timeIntervalSince(t0) }
@@ -67,6 +70,7 @@ final class Recorder {
     }
 
     private func addPoint(kind: String, at p: CGPoint, t: Double) {
+        if let r = ignore?(), r.contains(p) { return }
         let index = points.count
         let app = NSWorkspace.shared.frontmostApplication
         let frame = takeFrame(reason: kind, at: p)

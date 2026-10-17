@@ -35,10 +35,11 @@ except the one Claude call at the end.
 
 ## Interface (minimal)
 
-- Menu-bar icon: a dot; red while recording, half-filled while processing.
-- Hotkey ⌃⌥P starts and stops (Carbon hot key, needs no Accessibility).
-- Menu: Start/Stop, Copy last instructions, Open last session, Quit.
+- One window in Rocky's look (Geist, near-black on white, black buttons): Start recording, the permissions still missing,
+  recent sessions (click to copy, folder to open). No hotkey, no menu-bar item (Marc, 17 Oct 2026).
+- While recording: a floating pill (red dot, time, Stop), excluded from screenshots, its clicks ignored.
 - When done: the instructions are on the clipboard and a short sound plays. Paste into Claude Code.
+- Icon: gpt-image-2 artwork (`Resources/icon-source-gpt-image-2.png`) cropped into a macOS squircle.
 
 ## Build steps
 

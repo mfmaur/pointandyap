@@ -1,5 +1,5 @@
 import AppKit
-import Carbon.HIToolbox
+import SwiftUI
 
 @main
 struct Main {
@@ -18,132 +18,118 @@ struct Main {
             done.wait()
             return
         }
+        // Offscreen design check: Point --render-ui <dir>
+        if let i = args.firstIndex(of: "--render-ui"), i + 1 < args.count {
+            MainActor.assumeIsolated { RenderUI.run(to: URL(fileURLWithPath: args[i + 1])) }
+            return
+        }
         let app = NSApplication.shared
         let delegate = AppDelegate()
         app.delegate = delegate
-        app.setActivationPolicy(.accessory)
+        app.setActivationPolicy(.regular)
         app.run()
     }
 }
 
 @MainActor
-final class AppDelegate: NSObject, NSApplicationDelegate {
-    private var item: NSStatusItem!
-    private var recorder: Recorder?
-    private var processing = false
-    private var hotKey: EventHotKeyRef?
-    private var started: Date?
-    private var clockTimer: Timer?
+final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
+    private let state = AppState()
+    private var window: NSWindow!
+    private var pill: NSPanel!
+    private var previousApp: NSRunningApplication?
 
     func applicationDidFinishLaunching(_ note: Notification) {
-        item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        setIcon("circle")
-        rebuildMenu()
-        registerHotKey()
-        Task {
-            _ = await AudioRecorder.askForAccess()
-            Screen.askForAccess()
-            if !AXProbe.trusted { AXProbe.askForTrust() }
+        NSApp.mainMenu = makeMenu()
+        window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 400, height: 500),
+                          styleMask: [.titled, .closable, .miniaturizable, .fullSizeContentView], backing: .buffered, defer: false)
+        window.titlebarAppearsTransparent = true
+        window.titleVisibility = .hidden
+        window.isMovableByWindowBackground = true
+        window.backgroundColor = .white
+        window.appearance = NSAppearance(named: .aqua)
+        window.isReleasedWhenClosed = false
+        window.delegate = self
+        window.contentView = NSHostingView(rootView: MainView(state: state))
+        window.center()
+        window.setFrameAutosaveName("PointMain")
+
+        pill = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 150, height: 40), styleMask: [.borderless, .nonactivatingPanel],
+                       backing: .buffered, defer: false)
+        pill.level = .statusBar
+        pill.isFloatingPanel = true
+        pill.hasShadow = true
+        pill.backgroundColor = .clear
+        pill.isOpaque = false
+        pill.isMovableByWindowBackground = true
+        pill.sharingType = .none                  // never in a screenshot
+        pill.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        pill.appearance = NSAppearance(named: .aqua)
+        let host = NSHostingView(rootView: PillView(state: state))
+        host.frame = NSRect(x: 0, y: 0, width: 150, height: 40)
+        pill.contentView = host
+
+        NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main) { [weak self] n in
+            let app = n.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
+            MainActor.assumeIsolated { if let app, app != .current { self?.previousApp = app } }
         }
+        state.ownUI = { [weak self] in self?.pillRect() }
+        state.onRecordingChanged = { [weak self] on in self?.recording(on) }
+        state.refreshAccess()
+        state.loadSessions()
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
     }
 
-    private func setIcon(_ symbol: String, color: NSColor? = nil, title: String = "") {
-        let img = NSImage(systemSymbolName: symbol, accessibilityDescription: "Point")
-        if let color, let img {
-            let cfg = NSImage.SymbolConfiguration(paletteColors: [color])
-            item.button?.image = img.withSymbolConfiguration(cfg)
+    func applicationDidBecomeActive(_ note: Notification) { state.refreshAccess() }
+
+    func applicationShouldHandleReopen(_ app: NSApplication, hasVisibleWindows: Bool) -> Bool {
+        if case .recording = state.phase { return false }
+        window.makeKeyAndOrderFront(nil)
+        return true
+    }
+
+    private func recording(_ on: Bool) {
+        if on {
+            window.orderOut(nil)
+            let screen = NSScreen.main ?? NSScreen.screens[0]
+            let f = screen.visibleFrame
+            pill.setFrameOrigin(NSPoint(x: f.midX - 75, y: f.maxY - 52))
+            pill.orderFrontRegardless()
+            // Hand the screen back to the app that was in front before Point.
+            previousApp?.activate()
         } else {
-            img?.isTemplate = true
-            item.button?.image = img
-        }
-        item.button?.title = title.isEmpty ? "" : " " + title
-        item.button?.imagePosition = .imageLeading
-    }
-
-    private func rebuildMenu() {
-        let m = NSMenu()
-        let toggle = NSMenuItem(title: recorder == nil ? "Start recording" : "Stop recording",
-                                action: #selector(toggle), keyEquivalent: "p")
-        toggle.keyEquivalentModifierMask = [.control, .option]
-        toggle.isEnabled = !processing
-        m.addItem(toggle)
-        m.addItem(.separator())
-        m.addItem(NSMenuItem(title: "Copy last instructions", action: #selector(copyLast), keyEquivalent: ""))
-        m.addItem(NSMenuItem(title: "Open last session", action: #selector(openLast), keyEquivalent: ""))
-        m.addItem(.separator())
-        if !AXProbe.trusted {
-            m.addItem(NSMenuItem(title: "Allow Accessibility…", action: #selector(askAX), keyEquivalent: ""))
-        }
-        m.addItem(NSMenuItem(title: "Quit Point", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
-        for i in m.items where i.action != #selector(NSApplication.terminate(_:)) { i.target = self }
-        item.menu = m
-    }
-
-    @objc func toggle() {
-        if processing { return }
-        if let r = recorder {
-            recorder = nil
-            processing = true
-            clockTimer?.invalidate()
-            setIcon("circle.lefthalf.filled", title: "…")
-            rebuildMenu()
-            Task {
-                let dir = await r.stop()
-                let text = await Process.run(dir: dir)
-                NSPasteboard.general.clearContents()
-                NSPasteboard.general.setString(text, forType: .string)
-                NSSound(named: "Glass")?.play()
-                processing = false
-                setIcon("circle")
-                rebuildMenu()
-            }
-        } else {
-            let r = Recorder()
-            do {
-                try r.start()
-            } catch {
-                NSLog("point: could not start: \(error)")
-                NSSound(named: "Basso")?.play()
-                return
-            }
-            recorder = r
-            started = Date()
-            NSSound(named: "Tink")?.play()
-            setIcon("record.circle.fill", color: .systemRed, title: "0:00")
-            clockTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
-                MainActor.assumeIsolated {
-                    guard let self, let s = self.started else { return }
-                    let t = Int(Date().timeIntervalSince(s))
-                    self.item.button?.title = String(format: " %d:%02d", t / 60, t % 60)
-                }
-            }
-            rebuildMenu()
+            pill.orderOut(nil)
+            window.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
         }
     }
 
-    @objc func copyLast() {
-        guard let dir = Paths.latest() else { return }
-        let file = ["instructions.md", "session.md"].map { dir.appendingPathComponent($0) }
-            .first { FileManager.default.fileExists(atPath: $0.path) }
-        guard let file, let text = try? String(contentsOf: file, encoding: .utf8) else { return }
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(text, forType: .string)
+    /// The pill in global top-left coordinates, with a margin.
+    private func pillRect() -> CGRect? {
+        guard pill.isVisible else { return nil }
+        let h = NSScreen.screens.first?.frame.height ?? 0
+        let f = pill.frame.insetBy(dx: -12, dy: -12)
+        return CGRect(x: f.minX, y: h - f.maxY, width: f.width, height: f.height)
     }
 
-    @objc func openLast() {
-        if let dir = Paths.latest() { NSWorkspace.shared.open(dir) }
-    }
-
-    @objc func askAX() { AXProbe.askForTrust() }
-
-    // ⌃⌥P through a Carbon hot key (no Accessibility needed).
-    private func registerHotKey() {
-        var spec = EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))
-        InstallEventHandler(GetApplicationEventTarget(), { _, _, _ in
-            DispatchQueue.main.async { (NSApp.delegate as? AppDelegate)?.toggle() }
-            return noErr
-        }, 1, &spec, nil, nil)
-        let id = EventHotKeyID(signature: OSType(0x504F_4E54), id: 1)  // "PONT"
-        RegisterEventHotKey(UInt32(kVK_ANSI_P), UInt32(controlKey | optionKey), id, GetApplicationEventTarget(), 0, &hotKey)
+    private func makeMenu() -> NSMenu {
+        let main = NSMenu()
+        let appItem = NSMenuItem(); main.addItem(appItem)
+        let appMenu = NSMenu()
+        appMenu.addItem(NSMenuItem(title: "Hide Point", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h"))
+        appMenu.addItem(.separator())
+        appMenu.addItem(NSMenuItem(title: "Quit Point", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+        appItem.submenu = appMenu
+        let editItem = NSMenuItem(); main.addItem(editItem)
+        let edit = NSMenu(title: "Edit")
+        edit.addItem(NSMenuItem(title: "Copy", action: #selector(NSText.copy(_:)), keyEquivalent: "c"))
+        edit.addItem(NSMenuItem(title: "Select All", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a"))
+        editItem.submenu = edit
+        let winItem = NSMenuItem(); main.addItem(winItem)
+        let win = NSMenu(title: "Window")
+        win.addItem(NSMenuItem(title: "Close", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w"))
+        win.addItem(NSMenuItem(title: "Minimize", action: #selector(NSWindow.performMiniaturize(_:)), keyEquivalent: "m"))
+        winItem.submenu = win
+        return main
     }
 }

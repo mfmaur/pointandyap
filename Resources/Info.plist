@@ -10,7 +10,8 @@
 	<key>CFBundleShortVersionString</key><string>0.1.0</string>
 	<key>CFBundleVersion</key><string>1</string>
 	<key>LSMinimumSystemVersion</key><string>26.0</string>
-	<key>LSUIElement</key><true/>
+	<key>CFBundleIconFile</key><string>AppIcon</string>
+	<key>NSHighResolutionCapable</key><true/>
 	<key>NSMicrophoneUsageDescription</key><string>Point records what you say while you point at the screen.</string>
 	<key>NSSpeechRecognitionUsageDescription</key><string>Point transcribes your recording on this Mac.</string>
 </dict>

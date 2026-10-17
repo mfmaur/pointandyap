@@ -2,9 +2,11 @@
 
 Talk about what is on screen while you point with the cursor; get instructions a coding agent can act on.
 
-1. Press ⌃⌥P (the menu-bar dot turns red and shows a timer).
+1. Open Point and press Start recording. The window steps aside and a small pill with the time and Stop stays on top
+   (it is never in the screenshots, and clicks on it are not points).
 2. Talk and point: rest the cursor on the thing you mean while you say "this", "here", "that one". Clicks count too.
-3. Press ⌃⌥P again. A few seconds later a sound plays and the instructions are on the clipboard. Paste them into Claude Code.
+3. Press Stop. A few seconds later a sound plays and the instructions are on the clipboard. Paste them into Claude Code.
+   Recent sessions are listed in the window: click one to copy it again, the folder button opens it.
 
 Each session is kept in `~/Point/sessions/<date_time>/`: `session.md` (the aligned timeline, no model), `instructions.md`
 (written by Claude), `crops/` (the screen at each point, red ring = cursor, yellow box = element), `frames/`, `events.json`,
@@ -36,3 +38,4 @@ Reprocess a session headless: `/Applications/Point.app/Contents/MacOS/Point --pr
 (delete `transcript.json` to transcribe again).
 
 The plan and what comes later: `PLAN.md`.
+- Design check without a screen: `Point --render-ui <dir>` (window, permissions, rows, pill as PNGs).
