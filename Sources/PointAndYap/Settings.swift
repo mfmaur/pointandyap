@@ -26,6 +26,7 @@ struct SettingsView: View {
     @AppStorage("escCancels") private var escCancels = true
     @AppStorage("connectAgents") private var connectAgents = false
     @AppStorage("locale") private var locale = ""
+    @AppStorage("showNoSpeech") private var showNoSpeech = false
     @State private var atLogin = SMAppService.mainApp.status == .enabled
     @State private var agents = AgentInstall.status()
 
@@ -40,7 +41,7 @@ struct SettingsView: View {
                 Spacer()
                 Color.clear.frame(width: 60, height: 1)
             }
-            .padding(.bottom, 8)
+            .padding(.bottom, 4)
 
             section("Recording")
             group {
@@ -49,6 +50,12 @@ struct SettingsView: View {
                 toggle("Control twice", "Starts and stops a recording from any app", $doubleControl)
                 line
                 toggle("Esc cancels", "Stops and moves the recording to the Trash", $escCancels)
+                line
+                HStack {
+                    Text("Show recordings without speech").font(.geist(13)).foregroundStyle(Ink.primary)
+                    Spacer()
+                    Toggle("", isOn: $showNoSpeech).labelsHidden().toggleStyle(.switch).controlSize(.small)
+                }.frame(height: 40)
                 line
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
@@ -114,7 +121,7 @@ struct SettingsView: View {
     private var line: some View { Divider().overlay(Ink.line) }
 
     private func section(_ t: String) -> some View {
-        Text(t).font(.geist(11, .medium)).foregroundStyle(Ink.faint).tracking(0.6).padding(.top, 14).padding(.bottom, 6)
+        Text(t).font(.geist(11, .medium)).foregroundStyle(Ink.faint).tracking(0.6).padding(.top, 8).padding(.bottom, 6)
     }
 
     private func group<C: View>(@ViewBuilder _ c: () -> C) -> some View {

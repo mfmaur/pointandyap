@@ -12,6 +12,7 @@ struct SessionRow: Identifiable, Equatable {
     var status = ""     // open, in_progress, done; empty when nothing was said
     var by: String?
     var note: String?
+    var noSpeech = false
 }
 
 @MainActor
@@ -168,20 +169,27 @@ final class AppState: ObservableObject {
     func loadSessions() {
         let fm = FileManager.default
         let dirs = ((try? fm.contentsOfDirectory(at: Paths.root, includingPropertiesForKeys: nil)) ?? [])
-            .filter(\.hasDirectoryPath).sorted { $0.lastPathComponent > $1.lastPathComponent }.prefix(20)
-        sessions = dirs.compactMap { dir in
+            .filter(\.hasDirectoryPath).sorted { $0.lastPathComponent > $1.lastPathComponent }
+        // The newest 20 with speech, and the ones without speech between them (hidden unless Settings shows them).
+        var rows: [SessionRow] = []
+        for row in dirs.lazy.compactMap({ dir -> SessionRow? in
             guard let data = try? Data(contentsOf: dir.appendingPathComponent("events.json")),
                   let e = try? JSONDecoder.iso.decode(SessionEvents.self, from: data) else { return nil }
             var title = "No speech"
             if let w = try? Data(contentsOf: dir.appendingPathComponent("transcript.json")),
                let words = try? JSONDecoder().decode([Word].self, from: w), !words.isEmpty {
                 title = words.prefix(9).map(\.text).joined(separator: " ")
-            } else if phase == .processing {
+            } else if self.phase == .processing {
                 title = "Processing…"
             }
             let item = Items.items(in: dir, state: Items.readState(dir)).items.first
             return SessionRow(dir: dir, date: e.started, duration: Int(e.duration.rounded()), points: e.points.count,
-                              title: title, status: item?.status ?? "", by: item?.by, note: item?.note)
+                              title: title, status: item?.status ?? "", by: item?.by, note: item?.note,
+                              noSpeech: title == "No speech")
+        }) {
+            rows.append(row)
+            if rows.filter({ !$0.noSpeech }).count == 20 { break }
         }
+        sessions = rows
     }
 }

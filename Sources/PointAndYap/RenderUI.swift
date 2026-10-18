@@ -12,6 +12,7 @@ enum RenderUI {
         let s = AppState()
         s.sessions = [
             SessionRow(dir: dir.appendingPathComponent("c"), date: Date(), duration: 21, points: 3, title: "Make this list sort by date, newest first", status: "open"),
+            SessionRow(dir: dir.appendingPathComponent("s"), date: Date().addingTimeInterval(-600), duration: 2, points: 0, title: "No speech", noSpeech: true),
             SessionRow(dir: dir, date: Date().addingTimeInterval(-900), duration: 38, points: 5, title: "This button should be blue, not grey, and here", status: "in_progress", by: "claude-code"),
             SessionRow(dir: dir.appendingPathComponent("b"), date: Date().addingTimeInterval(-3600), duration: 12, points: 2, title: "The date is wrong, it should say today", status: "done", by: "you"),
         ]

@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Recent hides recordings without speech; Settings, Show recordings without speech brings them back.
+
 ## 0.1.3
 
 - A short loop of how it works above Start recording, once the permissions are allowed, until Got it; How it works

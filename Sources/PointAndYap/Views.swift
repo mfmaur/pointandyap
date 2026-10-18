@@ -3,6 +3,7 @@ import SwiftUI
 
 struct MainView: View {
     @ObservedObject var state: AppState
+    @AppStorage("showNoSpeech") private var showNoSpeech = false
 
     var body: some View {
         if state.showSettings { SettingsView(state: state) }
@@ -66,15 +67,16 @@ struct MainView: View {
             Text("Recent").font(.geist(11, .medium)).foregroundStyle(Ink.faint).tracking(0.6)
                 .padding(.top, 26).padding(.bottom, 6)
 
-            if state.sessions.isEmpty {
+            let shown = state.sessions.filter { showNoSpeech || !$0.noSpeech }
+            if shown.isEmpty {
                 Text("Nothing recorded yet").font(.geist(13)).foregroundStyle(Ink.muted).padding(.vertical, 10)
                 Spacer(minLength: 0)
             } else {
                 ScrollView {
                     VStack(spacing: 0) {
-                        ForEach(state.sessions) { row in
+                        ForEach(shown) { row in
                             SessionRowView(row: row, state: state)
-                            if row != state.sessions.last { Divider().overlay(Ink.line) }
+                            if row != shown.last { Divider().overlay(Ink.line) }
                         }
                     }
                 }
