@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.4
 
 - Recent hides recordings without speech; Settings, Show recordings without speech brings them back.
 - A Bluetooth headset no longer goes into call mode while nothing is recording: the microphone is opened only for a
