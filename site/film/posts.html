@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Point and Yap post clips</title>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500&family=Geist+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=block" rel="stylesheet">
+<style>
+  /* Clips for the posts after launch, 1920x1080, drawn from t alone like film.html. Example data only.
+     ?mode=before (old way vs Point and Yap), ?mode=session (three fixes in one recording), ?mode=this (how "this" is found). */
+  :root { --ink:#17181B; --ink2:#3A3C41; --muted:#6B6E76; --faint:#9A9DA4; --line:#E6E7EA; --field:#F6F6F7; --gold:#FFD66B; }
+  * { box-sizing:border-box; margin:0; }
+  html, body { background:#fff; overflow:hidden; -webkit-font-smoothing:antialiased; }
+  body { font-family:Geist, system-ui, sans-serif; color:var(--ink); }
+  .frame { position:absolute; left:0; top:0; width:1920px; height:1080px; transform-origin:0 0; overflow:hidden; background:var(--field); }
+  .abs { position:absolute; }
+
+  .menubar { position:absolute; left:0; right:0; top:0; height:44px; background:rgba(255,255,255,.92); border-bottom:1px solid var(--line); display:flex; align-items:center; padding:0 28px; gap:30px; font-size:17px; color:var(--ink2); }
+  .menubar b { font-weight:500; color:var(--ink); }
+  .menubar .right { margin-left:auto; display:flex; align-items:center; gap:22px; }
+  .menubar img { width:22px; height:22px; display:block; }
+
+  .app { position:absolute; width:1040px; height:700px; background:#fff; border:1px solid var(--line); border-radius:18px; box-shadow:0 30px 80px rgba(23,24,27,.09); overflow:hidden; }
+  .bar { height:56px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:9px; padding:0 22px; }
+  .bar i { width:14px; height:14px; border-radius:50%; background:var(--line); display:block; }
+  .bar span { margin-left:16px; font-size:18px; color:var(--muted); }
+  .content { padding:56px 72px; }
+  .content h3 { font-weight:500; font-size:40px; letter-spacing:-.01em; display:inline-block; }
+  .content .lead { margin-top:6px; font-size:20px; color:var(--muted); }
+  .row { margin-top:34px; padding-top:34px; border-top:1px solid var(--line); display:flex; align-items:center; justify-content:space-between; font-size:24px; color:var(--ink2); height:56px; box-sizing:content-box; }
+  .row .v { color:var(--ink); }
+  .save { border-radius:12px; padding:12px 30px; color:#fff; font-size:22px; font-weight:500; background:rgb(185,187,192); }
+
+  .panel { position:absolute; left:1180px; top:190px; width:660px; height:700px; background:#fff; border:1px solid var(--line); border-radius:18px; box-shadow:0 30px 80px rgba(23,24,27,.09); overflow:hidden; }
+  .panel .tb { height:56px; border-bottom:1px solid var(--line); display:flex; align-items:center; padding:0 24px; font-size:18px; color:var(--muted); gap:10px; }
+  .composer { position:absolute; left:24px; right:24px; bottom:24px; min-height:180px; border:1px solid var(--line); border-radius:14px; padding:18px 20px; font-size:24px; line-height:1.4; color:var(--ink); }
+  .caret { display:inline-block; width:2px; height:28px; background:var(--ink); vertical-align:-5px; margin-left:2px; }
+  .thumb { margin-top:14px; display:flex; align-items:center; gap:12px; border:1px solid var(--line); border-radius:10px; padding:10px 12px; font-size:16px; color:var(--muted); width:fit-content; }
+  .thumb i { width:56px; height:40px; border-radius:6px; background:linear-gradient(#EEF0F2, #DADCE0); display:block; }
+  .marquee { position:absolute; border:3px dashed #2F6FEB; background:rgba(47,111,235,.06); border-radius:4px; }
+
+  .tag { position:absolute; left:80px; top:84px; display:flex; align-items:center; gap:12px; font-size:24px; font-weight:500; background:#fff; border:1px solid var(--line); border-radius:999px; padding:10px 22px; box-shadow:0 10px 30px rgba(23,24,27,.06); }
+  .tag .dot { width:12px; height:12px; border-radius:50%; }
+  .timer { position:absolute; right:80px; top:84px; font-size:24px; color:var(--muted); background:#fff; border:1px solid var(--line); border-radius:999px; padding:10px 22px; }
+  .timer b { font-family:"Geist Mono", monospace; font-weight:500; color:var(--ink); }
+
+  .pill { position:absolute; left:960px; top:66px; display:flex; align-items:center; gap:14px; background:#fff; border:1px solid var(--line); border-radius:18px; padding:9px 9px 9px 20px; font-size:20px; box-shadow:0 12px 36px rgba(23,24,27,.10); white-space:nowrap; }
+  .pill .dot { width:12px; height:12px; border-radius:50%; background:#E5484D; }
+  .pill .t { font-family:"Geist Mono", monospace; width:52px; }
+  .pill .stop { background:var(--ink); color:#fff; border-radius:11px; padding:7px 16px; }
+  .toast { position:absolute; left:960px; top:66px; background:var(--ink); color:#fff; border-radius:999px; padding:13px 28px; font-size:22px; white-space:nowrap; box-shadow:0 12px 36px rgba(23,24,27,.18); }
+  .key { position:absolute; left:960px; top:916px; width:184px; height:104px; margin-left:-92px; background:#fff; border:1px solid var(--line); border-radius:16px; box-shadow:0 6px 0 #E1E2E6, 0 14px 30px rgba(23,24,27,.08); font-size:22px; color:var(--ink2); padding:14px 18px; display:flex; flex-direction:column; justify-content:space-between; }
+  .key .sym { font-size:30px; line-height:1; text-align:right; }
+  .said { position:absolute; left:960px; top:940px; background:#fff; border:1px solid var(--line); border-radius:16px; padding:16px 26px 18px; font-size:34px; line-height:1.3; box-shadow:0 12px 36px rgba(23,24,27,.08); white-space:nowrap; }
+  .said b { display:block; font-size:17px; font-weight:500; color:var(--muted); margin-bottom:2px; }
+  .ring { position:absolute; width:88px; height:88px; margin:-44px 0 0 -44px; border:4px solid var(--gold); border-radius:50%; }
+  .cursor { position:absolute; width:40px; height:40px; margin:-4px 0 0 -6px; }
+
+  .agent { position:absolute; left:1180px; top:330px; width:660px; height:560px; background:#17181B; color:#E6E7EA; border-radius:18px; font-family:"Geist Mono", monospace; font-size:21px; line-height:1.62; box-shadow:0 30px 80px rgba(23,24,27,.16); overflow:hidden; }
+  .agent .tb { height:52px; display:flex; align-items:center; gap:9px; padding:0 22px; border-bottom:1px solid #2A2C31; color:#8B8E96; font-size:17px; }
+  .agent .tb i { width:13px; height:13px; border-radius:50%; background:#34363C; display:block; }
+  .agent .tb span { margin-left:14px; }
+  .agent .body { padding:20px 28px; white-space:pre; }
+  .k { color:var(--gold); } .ok { color:#7BD88F; } .dim { color:#8B8E96; } .del { color:#FF8A8A; }
+
+  .queue { position:absolute; left:1180px; top:64px; width:660px; background:#fff; border:1px solid var(--line); border-radius:18px; box-shadow:0 20px 60px rgba(23,24,27,.09); padding:18px 24px; }
+  .queue .h { display:flex; align-items:center; gap:12px; font-size:18px; font-weight:500; }
+  .queue .h img { width:26px; height:26px; }
+  .queue .h .n { margin-left:auto; color:var(--muted); font-weight:400; }
+  .queue .q { margin-top:12px; display:flex; align-items:center; gap:14px; font-size:19px; }
+  .queue .q span:first-child { flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .badge { position:relative; width:110px; height:30px; border-radius:999px; font-size:15px; font-weight:500; text-align:center; line-height:30px; }
+  .badge b { position:absolute; inset:0; border-radius:999px; font-weight:500; }
+  .badge .open { background:#FFF4D1; color:#8A6400; } .badge .prog { background:#EEF0F2; color:#3A3C41; } .badge .done { background:#E3F3E8; color:#2F7A4B; }
+
+  .card { position:absolute; inset:0; background:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }
+  .card img { width:120px; height:120px; }
+  .card h1 { margin-top:28px; font-family:"Instrument Serif", Georgia, serif; font-weight:400; font-size:128px; line-height:1; letter-spacing:-.02em; }
+  .card h2 { margin-top:14px; font-family:"Instrument Serif", Georgia, serif; font-weight:400; font-size:64px; line-height:1.05; color:var(--ink2); }
+  .card h2 em { font-style:italic; }
+  .card p { margin-top:44px; font-family:"Geist Mono", monospace; font-size:28px; color:var(--muted); }
+  .later { font-family:"Instrument Serif", Georgia, serif; font-size:110px; }
+
+  .track { position:absolute; left:80px; right:80px; top:850px; height:190px; background:#fff; border:1px solid var(--line); border-radius:18px; }
+  .lane { position:absolute; left:280px; right:40px; height:2px; background:var(--line); }
+  .lanelabel { position:absolute; left:28px; font-size:18px; color:var(--muted); }
+  .chip { position:absolute; transform:translateX(-50%); border:1px solid var(--line); border-radius:10px; padding:6px 14px; font-size:24px; background:#fff; white-space:nowrap; }
+  .chip small { display:block; font-family:"Geist Mono", monospace; font-size:13px; color:var(--muted); }
+  .pt { position:absolute; width:12px; height:12px; margin:-6px 0 0 -6px; border-radius:50%; background:#C9CBD0; }
+  .playhead { position:absolute; top:12px; bottom:12px; width:2px; background:#E5484D; }
+  .link { position:absolute; width:3px; background:var(--gold); }
+  .item { position:absolute; left:1180px; top:190px; width:660px; height:620px; background:#fff; border:1px solid var(--line); border-radius:18px; box-shadow:0 30px 80px rgba(23,24,27,.09); padding:28px 32px; }
+  .item .h { font-size:18px; color:var(--muted); font-weight:500; }
+  .item .quote { margin-top:16px; font-size:40px; line-height:1.25; min-height:52px; }
+  .item .el { margin-top:22px; font-family:"Geist Mono", monospace; font-size:22px; color:var(--ink2); }
+  .crop { position:relative; margin-top:26px; height:300px; border:1px solid var(--line); border-radius:14px; background:#fff; overflow:hidden; }
+  .crop .save { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%) scale(1.6); }
+  .crop .box { position:absolute; left:50%; top:50%; width:230px; height:110px; transform:translate(-50%,-50%); border:3px solid var(--gold); border-radius:16px; }
+  .crop .rc { position:absolute; left:58%; top:58%; width:70px; height:70px; margin:-35px 0 0 -35px; border:4px solid #E5484D; border-radius:50%; }
+  .crop .lbl { position:absolute; left:16px; top:12px; font-size:16px; color:var(--muted); }
+</style>
+</head>
+<body>
+<div class="frame" id="frame"></div>
+<script>
+// ?mode=before|session|this; ?t=3 freezes a frame; no t plays in real time; capture=1 for the renderer.
+const params = new URLSearchParams(location.search);
+const MODE = ['before', 'session', 'this'].includes(params.get('mode')) ? params.get('mode') : 'before';
+const $ = id => document.getElementById(id);
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+const ease = p => p < .5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
+const easeOut = p => 1 - Math.pow(1 - p, 3);
+const prog = (t, a, b) => clamp((t - a) / (b - a));
+const lerp = (a, b, p) => a + (b - a) * p;
+const win = (t, a, b, f = .3) => Math.min(prog(t, a, a + f), 1 - prog(t, b - f, b));
+const mix = (c1, c2, p) => 'rgb(' + c1.map((v, i) => Math.round(lerp(v, c2[i], p))).join(',') + ')';
+const GRAY = [185, 187, 192], BLUE = [47, 111, 235];
+const ICON = '../public/icon-160.png';
+function show(el, o, dy = 0, extra = '') {
+  el.style.opacity = o.toFixed(3);
+  el.style.transform = extra + ' translateY(' + ((1 - o) * dy).toFixed(2) + 'px)';
+  el.style.visibility = o <= .001 ? 'hidden' : 'visible';
+}
+function words(t, text, start, step = .28) {
+  return text.split(' ').map((w, i) => '<span style="opacity:' + prog(t, start + i * step, start + i * step + .16).toFixed(3) + '">' + w + '</span>').join(' ');
+}
+function path(t, pts) {
+  let [t0, x0, y0] = pts[0];
+  for (const [t1, x1, y1] of pts.slice(1)) {
+    if (t < t1) { const p = ease(prog(t, t0, t1)); return { x: lerp(x0, x1, p), y: lerp(y0, y1, p) }; }
+    [t0, x0, y0] = [t1, x1, y1];
+  }
+  return { x: x0, y: y0 };
+}
+function offset(el) {
+  let x = 0, y = 0, n = el;
+  while (n && n.id !== 'frame') { x += n.offsetLeft; y += n.offsetTop; n = n.offsetParent; }
+  return { x, y, w: el.offsetWidth, h: el.offsetHeight };
+}
+const at = (el, dx = .5, dy = .5) => { const o = offset(el); return { x: o.x + o.w * dx, y: o.y + o.h * dy }; };
+function keyPress(t, presses) {
+  const p = Math.max(0, ...presses.map(a => 1 - Math.abs(t - a) / .12));
+  $('key').style.transform += ' translateY(' + (p * 5).toFixed(2) + 'px)';
+  $('key').style.boxShadow = '0 ' + (6 - p * 5).toFixed(2) + 'px 0 #E1E2E6, 0 14px 30px rgba(23,24,27,.08)';
+}
+function clock(el, secs) { el.textContent = Math.floor(secs / 60) + ':' + String(Math.floor(secs % 60)).padStart(2, '0'); }
+function placeCursor(c, ring) {
+  $('cursor').style.left = c.x + 'px'; $('cursor').style.top = c.y + 'px';
+  $('ring').style.left = c.x + 'px'; $('ring').style.top = c.y + 'px';
+  $('ring').style.opacity = ring.toFixed(3);
+  $('ring').style.transform = 'scale(' + lerp(.6, 1, ring).toFixed(3) + ')';
+}
+
+const SHARED = {
+  menubar: '<div class="menubar"><b>Acme</b><span>File</span><span>Edit</span><span>View</span><span>Window</span><div class="right"><img src="' + ICON + '" alt=""><span>Sun 9:41</span></div></div>',
+  app: (title = 'Settings') => '<div class="app" id="app"><div class="bar"><i></i><i></i><i></i><span>Acme · Settings</span></div><div class="content"><h3 id="title">' + title + '</h3><p class="lead">Acme Studio workspace</p>' +
+    '<div class="row"><span>Profile</span><span class="save" id="save">Save</span></div>' +
+    '<div class="row"><span>Last sync</span><span class="v" id="sync">3 days ago</span></div>' +
+    '<div class="row"><span>Plan</span><span class="v" id="plan">Team, 8 seats</span></div></div></div>',
+  rec: '<div class="key" id="key"><span class="sym">⌃</span><span>control</span></div>' +
+    '<div class="pill" id="pill"><span class="dot"></span><span class="t" id="clock">0:00</span><span class="stop">Stop</span></div>' +
+    '<div class="toast" id="toast"></div><div class="said" id="said"><b>You say</b><span id="words"></span></div>' +
+    '<div class="ring" id="ring"></div><svg class="cursor" id="cursor" viewBox="0 0 22 22"><path d="M3 2l14 8.2-6.1 1.4-2.9 5.9z" fill="#17181B" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"/></svg>',
+  end: '<div class="card" id="end"><img src="' + ICON + '" alt=""><h1>Point and Yap</h1><h2>Show, <em>don’t type.</em></h2><p>pointandyap.com</p></div>',
+};
+function endCard(t, start) {
+  const e = ease(prog(t, start, start + .6));
+  $('end').style.opacity = e.toFixed(3); $('end').style.visibility = e > 0 ? 'visible' : 'hidden';
+  [...$('end').children].forEach((el, i) => {
+    const p = easeOut(prog(t, start + .3 + i * .16, start + .9 + i * .16));
+    el.style.opacity = p.toFixed(3); el.style.transform = 'translateY(' + ((1 - p) * 18).toFixed(1) + 'px)';
+  });
+}
+
+// ---------- before: the old way (typing, screenshots), then Point and Yap ----------
+const OLD = 'the grey button… no not that one… the one under Settings, second row, next to Sync';
+const OLD2 = ' … wait, wrong screenshot';
+const SCENES = {
+  before: {
+    duration: 18,
+    html: () => SHARED.menubar + SHARED.app() +
+      '<div class="panel" id="chat"><div class="tb">Coding agent · new message</div><div class="composer"><span id="typed"></span><span class="caret" id="caret"></span><div class="thumb" id="thumb"><i></i><span id="thumbname">Screenshot 2026-10-18 at 9.41.12.png</span></div></div></div>' +
+      '<div class="marquee" id="marquee"></div>' +
+      '<div class="tag" id="tag"><span class="dot" id="tagdot"></span><span id="tagtext">The old way</span></div>' +
+      '<div class="timer" id="timer"><b id="tclock">0:00</b> <span id="tlabel">spent explaining</span></div>' +
+      '<div class="agent" id="agent" style="height:220px; top:560px"><div class="tb"><i></i><i></i><i></i><span>claude · ~/acme</span></div><div class="body" id="term"></div></div>' +
+      SHARED.rec + SHARED.end,
+    setup() {
+      $('app').style.left = '80px'; $('app').style.top = '190px';
+      this.P = { save: at($('save')), plan: at($('plan'), .2) };
+      $('term').innerHTML = '<div id="l1"><span class="k">⏺</span> point · get_open_items</div><div id="l2"><span class="dim">  “Make this blue.” on button “Save”</span></div><div id="l3"><span class="ok">  ✓ Done</span></div>';
+    },
+    render(t) {
+      const P = this.P;
+      const old = t < 7.8, cross = ease(prog(t, 7.6, 8.4));
+      // The old way: typing, a screenshot of the wrong part, a correction.
+      show($('chat'), 1 - cross, 0);
+      const n = Math.floor(prog(t, .8, 4.4) * OLD.length), n2 = Math.floor(prog(t, 6.3, 7.1) * OLD2.length);
+      $('typed').textContent = OLD.slice(0, n) + OLD2.slice(0, n2);
+      $('caret').style.opacity = Math.floor(t * 2.4) % 2 ? .15 : 1;
+      const thumb = easeOut(prog(t, 5.9, 6.2));
+      show($('thumb'), thumb, 8);
+      $('thumb').style.textDecoration = t > 7.1 ? 'line-through' : 'none';
+      $('thumb').style.opacity = (thumb * (t > 7.1 ? .45 : 1)).toFixed(3);
+      const mq = prog(t, 4.8, 5.7);
+      const m0 = { x: 120, y: P.plan.y - 50 }, m1 = { x: 1080, y: P.plan.y + 50 };
+      const mOn = win(t, 4.75, 6.0, .1);
+      $('marquee').style.left = m0.x + 'px'; $('marquee').style.top = m0.y + 'px';
+      $('marquee').style.width = lerp(0, m1.x - m0.x, ease(mq)) + 'px'; $('marquee').style.height = lerp(0, m1.y - m0.y, ease(mq)) + 'px';
+      $('marquee').style.opacity = mOn.toFixed(3);
+      // Tag and timer switch at the cut.
+      $('tagtext').textContent = old ? 'The old way' : 'With Point and Yap';
+      $('tagdot').style.background = old ? '#C9CBD0' : '#E5484D';
+      show($('tag'), Math.min(win(t, .2, 7.7, .3) + win(t, 8.0, 15.4, .3), 1), -10);
+      show($('timer'), Math.min(win(t, .6, 7.7, .3) + win(t, 8.4, 15.4, .3), 1), -10);
+      if (old) clock($('tclock'), lerp(0, 72, prog(t, .8, 7.4)));
+      else clock($('tclock'), lerp(0, 4, prog(t, 8.7, 12.6)));
+      $('tlabel').textContent = old ? 'spent explaining' : 'and done';
+      // Point and Yap.
+      show($('key'), win(t, 8.3, 9.3, .2) + win(t, 11.8, 12.8, .2), 20);
+      keyPress(t, [8.65, 8.95, 12.15, 12.45]);
+      show($('pill'), Math.min(easeOut(prog(t, 9.0, 9.4)), 1 - ease(prog(t, 12.5, 12.8))), -60, 'translateX(-50%)');
+      clock($('clock'), clamp(t - 9.0, 0, 3.5));
+      const said = win(t, 10.0, 12.0, .2);
+      show($('said'), said, 16, 'translateX(-50%)');
+      $('words').innerHTML = words(t, 'Make this blue.', 10.1, .3);
+      const c = old
+        ? path(t, [[0, 1500, 980], [4.6, 1500, 980], [4.8, m0.x, m0.y], [5.7, m1.x, m1.y], [6.3, 1320, 960]])
+        : path(t, [[7.8, 1400, 980], [9.3, 1400, 980], [9.9, P.save.x, P.save.y], [11.9, P.save.x, P.save.y], [12.6, 1100, 1000]]);
+      placeCursor(c, win(t, 9.95, 11.95, .2));
+      $('toast').textContent = 'New in Point and Yap: 1 thing to fix';
+      show($('toast'), Math.min(easeOut(prog(t, 12.8, 13.1)), 1 - ease(prog(t, 13.9, 14.2))), -60, 'translateX(-50%)');
+      show($('agent'), easeOut(prog(t, 13.3, 13.7)), 20);
+      $('l1').style.opacity = prog(t, 13.6, 13.7); $('l2').style.opacity = prog(t, 13.9, 14.0); $('l3').style.opacity = prog(t, 14.6, 14.7);
+      $('save').style.background = mix(GRAY, BLUE, ease(prog(t, 14.3, 14.7)));
+      show($('cursor'), 1 - prog(t, 15.3, 15.6));
+      endCard(t, 15.6);
+    },
+  },
+
+  // ---------- session: three fixes in one recording, then the agent works through them ----------
+  session: {
+    duration: 24,
+    html: () => SHARED.menubar + SHARED.app('Setings') +
+      '<div class="queue" id="queue"><div class="h"><img src="' + ICON + '" alt="">Point and Yap<span class="n" id="qn">3 to fix</span></div>' +
+      ['This button should be blue.', 'This date should say today.', 'There’s a typo in this title.'].map((s, i) =>
+        '<div class="q"><span>' + s + '</span><span class="badge"><b class="open" id="o' + i + '">To fix</b><b class="prog" id="p' + i + '">In progress</b><b class="done" id="d' + i + '">Done</b></span></div>').join('') + '</div>' +
+      '<div class="agent" id="agent"><div class="tb"><i></i><i></i><i></i><span>claude · ~/acme</span></div><div class="body" id="term"></div></div>' +
+      SHARED.rec + '<div class="card" id="later"><div class="later">10 minutes later</div></div>' + SHARED.end,
+    TERM: [
+      [15.4, '<span class="k">⏺</span> point · get_open_items'],
+      [15.8, '<span class="dim">  3 items, taking them</span>'],
+      [16.4, '<span class="k">⏺</span> Edit SettingsView.swift'],
+      [16.7, '<span class="ok">  + .tint(.accentColor)</span>'],
+      [17.6, '<span class="k">⏺</span> Edit SyncRow.swift'],
+      [17.9, '<span class="ok">  + Text(lastSync.relativeDay)</span>'],
+      [18.8, '<span class="k">⏺</span> Edit Strings.swift'],
+      [19.1, '<span class="del">  - "Setings"</span>'],
+      [19.1, '<span class="ok">  + "Settings"</span>'],
+      [20.0, '<span class="k">⏺</span> point · mark_done 1, 2, 3'],
+      [20.3, '<span class="ok">  ✓ 3 items done</span>'],
+    ],
+    setup() {
+      this.center = { x: 440, y: 190 }; this.left = { x: 80, y: 190 };
+      $('app').style.left = this.center.x + 'px'; $('app').style.top = this.center.y + 'px';
+      this.P = { save: at($('save')), sync: at($('sync'), .45), title: at($('title'), .55) };
+      $('term').innerHTML = this.TERM.map(([, h]) => '<div class="l">' + h + '</div>').join('');
+      this.lines = [...$('term').children];
+    },
+    render(t) {
+      const P = this.P, after = t >= 13.8;
+      $('app').style.left = (after ? this.left.x : this.center.x) + 'px';
+      show($('key'), win(t, .2, 1.3, .2) + win(t, 10.6, 11.8, .2), 20);
+      keyPress(t, [.55, .85, 11.0, 11.3]);
+      show($('pill'), Math.min(easeOut(prog(t, .9, 1.3)), 1 - ease(prog(t, 11.35, 11.65))), -60, 'translateX(-50%)');
+      clock($('clock'), clamp(t - .9, 0, 10.4));
+      const lines = [['This button should be blue.', 1.9, 4.3], ['This date should say today.', 5.1, 7.5], ['And there’s a typo in this title.', 8.3, 10.7]];
+      const cur = lines.find(([, a, b]) => t >= a - .3 && t < b + .3) || lines[0];
+      show($('said'), Math.max(...lines.map(([, a, b]) => win(t, a, b, .2))), 16, 'translateX(-50%)');
+      $('words').innerHTML = words(t, cur[0], cur[1] + .1, .26);
+      const c = path(t, [[0, 1500, 900], [1.1, 1500, 900], [1.7, P.save.x, P.save.y], [4.4, P.save.x, P.save.y], [4.9, P.sync.x, P.sync.y],
+        [7.6, P.sync.x, P.sync.y], [8.1, P.title.x, P.title.y], [10.8, P.title.x, P.title.y], [11.6, 1200, 980]]);
+      placeCursor(c, Math.max(win(t, 1.8, 4.3, .2), win(t, 5.0, 7.5, .2), win(t, 8.2, 10.7, .2)));
+      show($('cursor'), after ? 0 : 1);
+      $('toast').textContent = 'New in Point and Yap: 3 things to fix';
+      show($('toast'), Math.min(easeOut(prog(t, 11.7, 12.0)), 1 - ease(prog(t, 12.9, 13.2))), -60, 'translateX(-50%)');
+      // Ten minutes later.
+      const later = win(t, 13.2, 14.8, .4);
+      $('later').style.opacity = later.toFixed(3); $('later').style.visibility = later > 0 ? 'visible' : 'hidden';
+      show($('queue'), after ? easeOut(prog(t, 14.6, 15.0)) : 0, -24);
+      show($('agent'), after ? easeOut(prog(t, 14.8, 15.2)) : 0, 20);
+      this.TERM.forEach(([a], i) => this.lines[i].style.opacity = prog(t, a, a + .12).toFixed(3));
+      [[15.8, 16.8], [15.8, 18.0], [15.8, 19.2]].forEach(([p, d], i) => {
+        const done = t >= 20.3 ? 1 : 0, inprog = t >= p && !done ? 1 : 0;
+        $('o' + i).style.opacity = !inprog && !done ? 1 : 0; $('p' + i).style.opacity = inprog; $('d' + i).style.opacity = done;
+      });
+      $('qn').textContent = t < 20.3 ? (t < 15.8 ? '3 to fix' : '3 in progress') : '3 done';
+      $('save').style.background = mix(GRAY, BLUE, ease(prog(t, 16.7, 17.1)));
+      $('sync').textContent = t < 17.9 ? '3 days ago' : 'Today, 9:41';
+      $('title').textContent = t < 19.1 ? 'Setings' : 'Settings';
+      endCard(t, 21.4);
+    },
+  },
+
+  // ---------- this: the word timings and the cursor line up ----------
+  this: {
+    duration: 12,
+    REC: 3.0, T0: 1.0, T1: 8.0,  // the 3 s recording plays out over t 1 to 8
+    WORDS: [['Make', .3], ['this', .9], ['blue.', 1.5]],
+    html: () => SHARED.menubar + SHARED.app() +
+      '<div class="item" id="item"><div class="h">The item your agent gets</div><div class="quote" id="quote"></div><div class="el" id="el">button “Save” · window “Acme · Settings”</div>' +
+      '<div class="crop" id="crop"><span class="lbl">crop at “this”</span><span class="save">Save</span><span class="box"></span><span class="rc"></span></div></div>' +
+      '<div class="track" id="track"><span class="lanelabel" style="top:46px">What you said</span><span class="lanelabel" style="top:128px">Where the mouse was</span>' +
+      '<span class="lane" style="top:60px"></span><span class="lane" style="top:140px"></span><span id="chips"></span><span id="pts"></span><span class="link" id="link"></span><span class="playhead" id="ph"></span></div>' +
+      '<div class="ring" id="ring"></div><svg class="cursor" id="cursor" viewBox="0 0 22 22"><path d="M3 2l14 8.2-6.1 1.4-2.9 5.9z" fill="#17181B" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"/></svg>' + SHARED.end,
+    setup() {
+      $('app').style.left = '80px'; $('app').style.top = '110px';
+      this.P = { save: at($('save')) };
+      this.x0 = 300; this.x1 = 1760 - 40;  // lane x range inside the track
+      const xOf = s => this.x0 + (this.x1 - this.x0) * s / this.REC;
+      $('chips').innerHTML = this.WORDS.map(([w, s], i) => '<span class="chip" id="c' + i + '" style="left:' + xOf(s) + 'px; top:22px">' + w + '<small>' + s.toFixed(1) + ' s</small></span>').join('');
+      this.samples = Array.from({ length: 31 }, (_, i) => i * this.REC / 30);
+      $('pts').innerHTML = this.samples.map((s, i) => '<span class="pt" id="s' + i + '" style="left:' + xOf(s) + 'px; top:141px"></span>').join('');
+      $('link').style.left = (xOf(.9) - 1) + 'px'; $('link').style.top = '76px';
+      this.xOf = xOf;
+    },
+    mouse(s) { const P = this.P; return path(s, [[0, 1500, 760], [.2, 1500, 760], [.75, P.save.x, P.save.y], [2.2, P.save.x, P.save.y], [2.8, 1300, 700]]); },
+    render(t) {
+      const s = lerp(0, this.REC, prog(t, this.T0, this.T1));
+      const live = t < this.T1 + .2;
+      $('ph').style.left = (this.xOf(s) + 80 - 80) + 'px';
+      $('ph').style.opacity = live ? 1 : 0;
+      this.WORDS.forEach(([, ws], i) => {
+        const on = prog(s, ws, ws + .08);
+        $('c' + i).style.opacity = (.25 + .75 * on).toFixed(3);
+        $('c' + i).style.borderColor = i === 1 && s >= ws ? '#E5B94A' : '';
+        $('c' + i).style.background = i === 1 && s >= ws ? '#FFF7E0' : '#fff';
+      });
+      this.samples.forEach((ss, i) => {
+        const el = $('s' + i), m = this.mouse(ss), resting = ss >= .75 && ss <= 2.2;
+        el.style.opacity = s >= ss ? 1 : .25;
+        el.style.background = resting ? '#E5B94A' : '#C9CBD0';
+      });
+      const hit = prog(s, .9, 1.05);
+      $('link').style.height = (64 * hit) + 'px'; $('link').style.opacity = hit.toFixed(3);
+      const c = this.mouse(s);
+      placeCursor(c, win(t, this.T0 + .9 / this.REC * 7, this.T1, .25));
+      show($('cursor'), 1 - prog(t, 9.2, 9.5));
+      const shown = this.WORDS.filter(([, ws]) => s >= ws).map(([w]) => w).join(' ');
+      $('quote').textContent = shown ? '“' + shown + (s >= 1.5 ? '”' : '') : '';
+      show($('el'), easeOut(prog(t, 3.4, 3.8)), 10);
+      show($('crop'), easeOut(prog(t, 3.6, 4.1)), 16);
+      endCard(t, 9.4);
+    },
+  },
+};
+
+const S = SCENES[MODE];
+$('frame').innerHTML = S.html();
+function fit() { const k = Math.min(innerWidth / 1920, innerHeight / 1080); $('frame').style.transform = params.has('capture') ? '' : 'scale(' + k + ')'; }
+window.DURATION = S.duration;
+window.render = t => S.render(t);
+window.ready = (async () => {
+  await document.fonts.ready;
+  await Promise.all([...document.images].map(i => i.decode().catch(() => {})));
+  if ($('pill')) $('pill').style.transform = 'translateX(-50%)';
+  S.setup(); fit(); addEventListener('resize', fit);
+  if (params.has('t')) S.render(+params.get('t'));
+  else if (!params.has('capture')) { const t0 = performance.now(); const loop = () => { S.render(((performance.now() - t0) / 1000) % S.duration); requestAnimationFrame(loop); }; loop(); }
+  return true;
+})();
+</script>
+</body>
+</html>
