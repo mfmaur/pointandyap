@@ -24,6 +24,7 @@ final class AppState: ObservableObject {
     @Published var mic = false
     @Published var screen = false
     @Published var ax = false
+    @Published var showSettings = false
 
     private var recorder: Recorder?
     var onRecordingChanged: ((Bool) -> Void)?
@@ -70,7 +71,7 @@ final class AppState: ObservableObject {
         r.cancel()
         phase = .idle
         onRecordingChanged?(false)
-        NSSound(named: "Pop")?.play()
+        if Prefs.sounds { NSSound(named: "Pop")?.play() }
         loadSessions()
     }
 

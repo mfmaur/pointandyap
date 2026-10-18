@@ -13,9 +13,28 @@ enum AgentInstall {
             .map(URL.init(fileURLWithPath:)).first { FileManager.default.isExecutableFile(atPath: $0.path) }
     }
 
-    static func run(log: (String) -> Void = { NSLog("point: \($0)") }) {
-        guard Bundle.main.bundlePath == "/Applications/Point.app" else { return }
+    static func run(force: Bool = false, log: (String) -> Void = { NSLog("point: \($0)") }) {
+        guard Bundle.main.bundlePath == "/Applications/Point.app", force || Prefs.connectAgents else { return }
         claudeCode(log); codex(log); cursor(log); skills(log)
+    }
+
+    /// Which agents on this Mac know Point (for Settings).
+    static func status() -> [(name: String, on: Bool)] {
+        var out: [(String, Bool)] = []
+        let fm = FileManager.default
+        let claude = home.appendingPathComponent(".claude.json")
+        if fm.fileExists(atPath: claude.path) {
+            let servers = (try? Data(contentsOf: claude)).flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }?["mcpServers"] as? [String: Any]
+            out.append(("Claude Code", servers?["point"] != nil))
+        }
+        if let t = try? String(contentsOf: home.appendingPathComponent(".codex/config.toml"), encoding: .utf8) {
+            out.append(("Codex", t.contains("[mcp_servers.point]")))
+        }
+        if fm.fileExists(atPath: home.appendingPathComponent(".cursor").path) {
+            let j = (try? Data(contentsOf: home.appendingPathComponent(".cursor/mcp.json"))).flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }
+            out.append(("Cursor", (j?["mcpServers"] as? [String: Any])?["point"] != nil))
+        }
+        return out
     }
 
     private static func backup(_ file: URL) {

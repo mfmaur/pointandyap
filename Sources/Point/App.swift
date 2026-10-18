@@ -46,7 +46,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     func applicationDidFinishLaunching(_ note: Notification) {
         NSApp.mainMenu = makeMenu()
-        window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 400, height: 500),
+        window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 400, height: 560),
                           styleMask: [.titled, .closable, .miniaturizable, .fullSizeContentView], backing: .buffered, defer: false)
         window.titlebarAppearsTransparent = true
         window.titleVisibility = .hidden
@@ -86,8 +86,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             MainActor.assumeIsolated { if let self, self.window.isVisible, self.state.phase == .idle { self.state.loadSessions() } }
         }
         state.refreshAccess()
-        doubleControl = DoubleControl(fire: { [weak self] in self?.state.toggle() },
-                                      escape: { [weak self] in self?.state.cancel() })
+        doubleControl = DoubleControl(fire: { [weak self] in if Prefs.doubleControl { self?.state.toggle() } },
+                                      escape: { [weak self] in if Prefs.escCancels { self?.state.cancel() } })
         state.loadSessions()
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
@@ -124,10 +124,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         return CGRect(x: f.minX, y: h - f.maxY, width: f.width, height: f.height)
     }
 
+    @objc private func openSettings() {
+        state.showSettings = true
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
     private func makeMenu() -> NSMenu {
         let main = NSMenu()
         let appItem = NSMenuItem(); main.addItem(appItem)
         let appMenu = NSMenu()
+        let settings = NSMenuItem(title: "Settings…", action: #selector(openSettings), keyEquivalent: ",")
+        settings.target = self
+        appMenu.addItem(settings)
+        appMenu.addItem(.separator())
         appMenu.addItem(NSMenuItem(title: "Hide Point", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h"))
         appMenu.addItem(.separator())
         appMenu.addItem(NSMenuItem(title: "Quit Point", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))

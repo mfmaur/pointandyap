@@ -82,6 +82,7 @@ struct SmallButton: ButtonStyle {
 enum Sounds {
     private static var cache: [String: NSSound] = [:]
     static func play(_ name: String) {
+        guard Prefs.sounds else { return }
         if cache[name] == nil, let url = Bundle.main.url(forResource: name, withExtension: "caf", subdirectory: "Sounds") {
             cache[name] = NSSound(contentsOf: url, byReference: true)
         }

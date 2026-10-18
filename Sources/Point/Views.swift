@@ -5,6 +5,10 @@ struct MainView: View {
     @ObservedObject var state: AppState
 
     var body: some View {
+        if state.showSettings { SettingsView(state: state) } else { main }
+    }
+
+    private var main: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 10) {
                 Image(nsImage: NSApp.applicationIconImage).resizable().frame(width: 30, height: 30)
@@ -12,6 +16,9 @@ struct MainView: View {
                     Text("Point").font(.geist(15, .medium)).foregroundStyle(Ink.primary)
                     Text("Talk and point. Your agent gets the instructions.").font(.geist(12)).foregroundStyle(Ink.muted)
                 }
+                Spacer()
+                Button { state.showSettings = true } label: { Image(systemName: "gearshape").font(.system(size: 13)) }
+                    .buttonStyle(SmallButton()).help("Settings (⌘,)")
             }
             .padding(.bottom, 20)
 
@@ -53,7 +60,7 @@ struct MainView: View {
             }
         }
         .padding(24)
-        .frame(width: 400, height: 500, alignment: .topLeading)
+        .frame(width: 400, height: 560, alignment: .topLeading)
         .background(Color.white)
         .overlay(alignment: .bottom) {
             if let t = state.toast {
