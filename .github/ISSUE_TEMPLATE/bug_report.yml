@@ -1,0 +1,33 @@
+name: Bug report
+description: Something does not work as it should
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, what you saw instead.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Point and Yap version and macOS version (Apple menu, About This Mac).
+      placeholder: "0.1.0 on macOS 26.1"
+    validations:
+      required: true
+  - type: dropdown
+    id: agent
+    attributes:
+      label: Coding agent
+      options: [Not about an agent, Claude Code, Codex, Cursor, Other]
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: "Optional: `log show --last 10m --predicate 'process == \"Point\"' --style compact | grep point:`"
+      render: text
+  - type: markdown
+    attributes:
+      value: Please do not attach recordings or screenshots that show private data.
