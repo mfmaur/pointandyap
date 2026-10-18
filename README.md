@@ -81,11 +81,14 @@ asks before connecting them. Connect, or Skip and do it later in Settings.
 
 Esc while recording cancels it and moves it to the Trash.
 
-### Everything stays on your Mac
+### Runs on your Mac
 
 Speech is transcribed by Apple's on-device model. Recordings, screenshots, the queue and the MCP server all live on your
-Mac, in `~/PointAndYap/sessions`. No account, no server, no analytics. The only download is Apple's speech model, which macOS
-fetches once.
+Mac, in `~/PointAndYap/sessions`. No account, no server, no analytics. The app itself only goes online to check
+pointandyap.com for updates (and macOS fetches Apple's speech model once).
+
+Your coding agent is a different matter: when it reads an item, what you said and the crops go to whatever model it uses,
+like anything else you show it.
 
 ## MCP tools
 
@@ -120,7 +123,8 @@ POINTANDYAP_AGENT=my-agent "/Applications/Point and Yap.app/Contents/MacOS/Point
 
 ## FAQ
 
-**Does anything leave my Mac?** No. See [Everything stays on your Mac](#everything-stays-on-your-mac).
+**Does anything leave my Mac?** Point and Yap sends nothing anywhere; it only checks for updates. Your coding agent sends
+what it reads (your words and the crops) to its model, as with anything you give it. See [Runs on your Mac](#runs-on-your-mac).
 
 **Which agents work?** Claude Code, Codex and Cursor are connected for you. Any MCP client that runs a local stdio server
 works with the command above, and any agent with a shell can use `--items` and `--done`.

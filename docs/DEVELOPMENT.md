@@ -41,7 +41,6 @@ Accessibility.
 Reprocess a session headless: `"/Applications/Point and Yap.app/Contents/MacOS/PointAndYap" --process ~/PointAndYap/sessions/<dir>`
 (delete `transcript.json` to transcribe again).
 
-The plan and what comes later: `PLAN.md`.
 - Design check without a screen: `PointAndYap --render-ui <dir>` (window, permissions, rows, Settings, the agents question, pill
   as PNGs). Run the bundle's binary so the icon and fonts load. The README images: `assets/src/` (HTML rendered with
   Chromium, then `cwebp`).
