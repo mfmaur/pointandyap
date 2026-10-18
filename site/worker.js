@@ -35,8 +35,25 @@ export default {
       }
       return res;
     }
-    // Not in search results until launch (remove these two lines then).
-    const res = await env.ASSETS.fetch(request);
-    return new Response(res.body, { status: res.status, headers: { ...Object.fromEntries(res.headers), "x-robots-tag": "noindex" } });
+    // Media is asked for whole and sliced below (the assets binding does not answer ranges reliably).
+    const media = url.pathname.startsWith("/media/");
+    const res = await env.ASSETS.fetch(media ? new Request(url, { headers: { accept: request.headers.get("accept") ?? "*/*" } }) : request);
+    // Not in search results until launch (remove the noindex header then).
+    const headers = { ...Object.fromEntries(res.headers), "x-robots-tag": "noindex" };
+    // Safari plays a video only when it answers byte ranges; the assets binding sends the whole file, so slice it here.
+    const range = /^bytes=(\d+)-(\d*)$/.exec(request.headers.get("range") ?? "");
+    if (media && res.status === 200) {
+      headers["accept-ranges"] = "bytes";
+      if (range) {
+        const buf = await res.arrayBuffer(), size = buf.byteLength;
+        const start = +range[1], end = Math.min(range[2] ? +range[2] : size - 1, size - 1);
+        if (start > end) return new Response(null, { status: 416, headers: { "content-range": `bytes */${size}` } });
+        return new Response(buf.slice(start, end + 1), {
+          status: 206,
+          headers: { ...headers, "content-range": `bytes ${start}-${end}/${size}`, "content-length": String(end - start + 1) },
+        });
+      }
+    }
+    return new Response(res.body, { status: res.status, headers });
   },
 };
