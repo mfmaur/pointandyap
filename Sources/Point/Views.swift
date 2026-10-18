@@ -5,17 +5,15 @@ struct MainView: View {
     @ObservedObject var state: AppState
 
     var body: some View {
-        if state.showSettings { SettingsView(state: state) } else { main }
+        if state.showSettings { SettingsView(state: state) }
+        else if !state.askAgents.isEmpty { AgentsQuestion(state: state) }
+        else { main }
     }
 
     private var main: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 10) {
-                Image(nsImage: NSApp.applicationIconImage).resizable().frame(width: 30, height: 30)
-                VStack(alignment: .leading, spacing: 1) {
-                    Text("Point").font(.geist(15, .medium)).foregroundStyle(Ink.primary)
-                    Text("Talk and point. Your agent gets the instructions.").font(.geist(12)).foregroundStyle(Ink.muted)
-                }
+                AppTitle()
                 Spacer()
                 Button { state.showSettings = true } label: { Image(systemName: "gearshape").font(.system(size: 13)) }
                     .buttonStyle(SmallButton()).help("Settings (⌘,)")
@@ -42,7 +40,7 @@ struct MainView: View {
             Text("Or press Control twice. Rest the cursor on what you mean.")
                 .font(.geist(12)).foregroundStyle(Ink.faint).padding(.top, 10)
 
-            Text("RECENT").font(.geist(11, .medium)).foregroundStyle(Ink.faint).tracking(0.6)
+            Text("Recent").font(.geist(11, .medium)).foregroundStyle(Ink.faint).tracking(0.6)
                 .padding(.top, 26).padding(.bottom, 6)
 
             if state.sessions.isEmpty {
@@ -72,6 +70,49 @@ struct MainView: View {
             }
         }
         .animation(.easeOut(duration: 0.15), value: state.toast)
+    }
+}
+
+/// Icon, name and the one line under it.
+struct AppTitle: View {
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(nsImage: NSApp.applicationIconImage).resizable().frame(width: 30, height: 30)
+            VStack(alignment: .leading, spacing: 1) {
+                Text("Point and Yap").font(.geist(15, .medium)).foregroundStyle(Ink.primary)
+                Text("Show, don't type.").font(.geist(12)).foregroundStyle(Ink.muted)
+            }
+        }
+    }
+}
+
+/// First run: nothing in an agent's config changes before this yes.
+struct AgentsQuestion: View {
+    @ObservedObject var state: AppState
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            AppTitle().padding(.bottom, 28)
+            Text("Connect your coding agents?").font(.geist(15, .medium)).foregroundStyle(Ink.primary)
+            Text("They get a local MCP server and a skill to read your recordings. Each config is backed up first.")
+                .font(.geist(12)).foregroundStyle(Ink.muted).fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 6).padding(.bottom, 16)
+            VStack(spacing: 0) {
+                ForEach(state.askAgents, id: \.self) { name in
+                    HStack { Text(name).font(.geist(13)).foregroundStyle(Ink.primary); Spacer() }.frame(height: 40)
+                    if name != state.askAgents.last { Divider().overlay(Ink.line) }
+                }
+            }
+            .padding(.horizontal, 12)
+            .background(RoundedRectangle(cornerRadius: 10).fill(Ink.field))
+            Button("Connect") { state.answerAgents(true) }.buttonStyle(DarkButton()).padding(.top, 20)
+            Button("Skip") { state.answerAgents(false) }.buttonStyle(SmallButton()).frame(maxWidth: .infinity).padding(.top, 10)
+            Text("You can change this in Settings.").font(.geist(12)).foregroundStyle(Ink.faint)
+                .frame(maxWidth: .infinity).padding(.top, 10)
+            Spacer(minLength: 0)
+        }
+        .padding(24)
+        .frame(width: 400, height: 560, alignment: .topLeading)
+        .background(Color.white)
     }
 }
 

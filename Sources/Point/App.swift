@@ -80,7 +80,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         }
         state.ownUI = { [weak self] in self?.pillRect() }
         state.onRecordingChanged = { [weak self] on in self?.recording(on) }
-        DispatchQueue.global(qos: .utility).async { AgentInstall.run() }
+        // Agent configs are only touched after a yes: the first launch asks, later launches follow the switch.
+        if AgentInstall.installed {
+            if AgentInstall.needsAsking() { state.askAgents = AgentInstall.status().map(\.name) }
+            else { DispatchQueue.global(qos: .utility).async { AgentInstall.run() } }
+        }
         // Agents mark items done from their own processes: read the states again while the window shows.
         Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { if let self, self.window.isVisible, self.state.phase == .idle { self.state.loadSessions() } }
@@ -138,9 +142,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         settings.target = self
         appMenu.addItem(settings)
         appMenu.addItem(.separator())
-        appMenu.addItem(NSMenuItem(title: "Hide Point", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h"))
+        appMenu.addItem(NSMenuItem(title: "Hide Point and Yap", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h"))
         appMenu.addItem(.separator())
-        appMenu.addItem(NSMenuItem(title: "Quit Point", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+        appMenu.addItem(NSMenuItem(title: "Quit Point and Yap", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
         appItem.submenu = appMenu
         let editItem = NSMenuItem(); main.addItem(editItem)
         let edit = NSMenu(title: "Edit")

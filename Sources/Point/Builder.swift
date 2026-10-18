@@ -119,7 +119,7 @@ enum Builder {
 
         let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd HH:mm"
         let apps = Array(Set(events.points.compactMap { p in p.app.map { "\($0) (\(p.bundleID ?? "?"))" } })).sorted()
-        var md = "# Point session \(df.string(from: events.started)) (\(Int(events.duration)) s)\n\n"
+        var md = "# Point and Yap session \(df.string(from: events.started)) (\(Int(events.duration)) s)\n\n"
         md += "Folder: `\(dir.path)`\n"
         if !apps.isEmpty { md += "Apps pointed at: \(apps.joined(separator: ", "))\n" }
         md += "\nMarkers like [3] show where the cursor rested or clicked while that word was spoken. Coordinates are screen "
