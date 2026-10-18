@@ -46,9 +46,10 @@ Requires macOS 26 or later and a Mac with Apple silicon.
 curl -fsSL https://pointandyap.com/install.sh | sh
 ```
 
-or with Homebrew:
+or with Homebrew (trust the tap once, then install):
 
 ```bash
+brew trust mfmaur/tap
 brew install --cask mfmaur/tap/point-and-yap
 ```
 
