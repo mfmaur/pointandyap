@@ -31,8 +31,8 @@ cask "point-and-yap" do
   app "$APP"
 
   zap trash: [
-    "~/Library/Application Support/Point",
-    "~/Library/Preferences/com.marcmaurer.point.plist",
+    "~/Library/Application Support/PointAndYap",
+    "~/Library/Preferences/com.marcmaurer.pointandyap.plist",
   ]
 end
 CASK

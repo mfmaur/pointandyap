@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.1
+
+- The app is now "Point and Yap" everywhere: `/Applications/Point and Yap.app`, the MCP server `pointandyap`, the skill
+  `point-and-yap`, recordings in `~/PointAndYap`. Recordings, settings and agent connections of 0.1.0 move over by
+  themselves; macOS asks for the microphone, screen recording and accessibility once more.
+- A designed installer window: drag Point and Yap into Applications.
+- Soft start and done sounds of its own.
+
 ## 0.1.0
 
 The first public build. macOS 26, Apple silicon. Signed with a Developer ID and notarized by Apple.

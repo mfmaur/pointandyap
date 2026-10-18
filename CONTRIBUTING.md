@@ -17,8 +17,8 @@ swift build
 swift test
 ```
 
-The tests run against a synthetic recording in a temporary folder and never touch `~/Point`.
-`.build/debug/Point --render-ui <dir>` draws the window, the pill and Settings as PNGs for a design check.
+The tests run against a synthetic recording in a temporary folder and never touch `~/PointAndYap`.
+`.build/debug/PointAndYap --render-ui <dir>` draws the window, the pill and Settings as PNGs for a design check.
 
 ## Pull requests
 

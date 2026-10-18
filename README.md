@@ -2,6 +2,11 @@
   <img src="assets/readme-banner.webp" alt="Point and Yap. Show, don't type." width="100%" />
 </p>
 
+<p align="center">
+  <a href="https://github.com/mfmaur/pointandyap/releases/latest/download/PointAndYap.dmg"><img src="https://img.shields.io/badge/Download_for_Mac-17181B?style=for-the-badge&amp;logo=apple&amp;logoColor=white" alt="Download Point and Yap for Mac" height="44" /></a>
+</p>
+<p align="center"><sub>Free · macOS 26 on Apple silicon · or <code>curl -fsSL https://pointandyap.com/install.sh | sh</code></sub></p>
+
 <p align="center" style="margin-bottom: 8px;">
   <a href="https://pointandyap.com" title="Visit pointandyap.com"><img src="https://img.shields.io/badge/website-pointandyap.com-24292f?style=flat" alt="Visit pointandyap.com" /></a>
   &nbsp;
@@ -79,15 +84,15 @@ Esc while recording cancels it and moves it to the Trash.
 ### Everything stays on your Mac
 
 Speech is transcribed by Apple's on-device model. Recordings, screenshots, the queue and the MCP server all live on your
-Mac, in `~/Point/sessions`. No account, no server, no analytics. The only download is Apple's speech model, which macOS
+Mac, in `~/PointAndYap/sessions`. No account, no server, no analytics. The only download is Apple's speech model, which macOS
 fetches once.
 
 ## MCP tools
 
-`/Applications/Point.app/Contents/MacOS/Point --mcp` is a local MCP server over stdio, named `point`. After you say
+`"/Applications/Point and Yap.app/Contents/MacOS/PointAndYap" --mcp` is a local MCP server over stdio, named `pointandyap`. After you say
 Connect, it is added to Claude Code (user scope), Codex (`~/.codex/config.toml`) and Cursor (`~/.cursor/mcp.json`), and a
 skill is linked into `~/.claude/skills` and `~/.agents/skills`. Each config is backed up first to
-`~/Library/Application Support/Point/backups/`. An existing entry named `point` that is not ours is left alone.
+`~/Library/Application Support/PointAndYap/backups/`. An existing entry named `pointandyap` that is not ours is left alone.
 
 | Tool | What it does |
 | --- | --- |
@@ -106,11 +111,11 @@ the same item.
 For an agent without MCP:
 
 ```bash
-/Applications/Point.app/Contents/MacOS/Point --items
+"/Applications/Point and Yap.app/Contents/MacOS/PointAndYap" --items
 ```
 
 ```bash
-POINT_AGENT=my-agent /Applications/Point.app/Contents/MacOS/Point --done <id> --note "what changed"
+POINTANDYAP_AGENT=my-agent "/Applications/Point and Yap.app/Contents/MacOS/PointAndYap" --done <id> --note "what changed"
 ```
 
 ## FAQ
@@ -122,9 +127,9 @@ works with the command above, and any agent with a shell can use `--items` and `
 
 **I skipped connecting. How do I connect later?** Settings, Coding agents, Connect now.
 
-**How do I remove it?** Quit it and delete it from Applications. To remove the agent entries: `claude mcp remove point
---scope user`, the `[mcp_servers.point]` table in `~/.codex/config.toml`, `point` in `~/.cursor/mcp.json`, and the `point`
-links in `~/.claude/skills` and `~/.agents/skills`. Recordings are in `~/Point`.
+**How do I remove it?** Quit it and delete it from Applications. To remove the agent entries: `claude mcp remove pointandyap
+--scope user`, the `[mcp_servers.pointandyap]` table in `~/.codex/config.toml`, `pointandyap` in `~/.cursor/mcp.json`, and the `point-and-yap`
+links in `~/.claude/skills` and `~/.agents/skills`. Recordings are in `~/PointAndYap`.
 
 **Does it work on older Macs or Intel?** Not yet. Only speech-to-text needs macOS 26 (SpeechAnalyzer, Apple's on-device
 model with word timings, which lines up each word with where the cursor was). Wider support is planned.

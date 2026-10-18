@@ -26,7 +26,7 @@ body:
     id: logs
     attributes:
       label: Logs
-      description: "Optional: `log show --last 10m --predicate 'process == \"Point\"' --style compact | grep point:`"
+      description: "Optional: `log show --last 10m --predicate 'process == \"PointAndYap\"' --style compact | grep pointandyap:`"
       render: text
   - type: markdown
     attributes:

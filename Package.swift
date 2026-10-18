@@ -2,18 +2,18 @@
 import PackageDescription
 
 let package = Package(
-    name: "Point",
+    name: "PointAndYap",
     platforms: [.macOS("26.0")],
     targets: [
         .executableTarget(
-            name: "Point",
-            path: "Sources/Point",
+            name: "PointAndYap",
+            path: "Sources/PointAndYap",
             swiftSettings: [.swiftLanguageMode(.v5)]
         ),
         .testTarget(
-            name: "PointTests",
-            dependencies: ["Point"],
-            path: "Tests/PointTests",
+            name: "PointAndYapTests",
+            dependencies: ["PointAndYap"],
+            path: "Tests/PointAndYapTests",
             resources: [.copy("Fixtures")],
             swiftSettings: [.swiftLanguageMode(.v5)]
         ),

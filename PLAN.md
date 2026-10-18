@@ -1,6 +1,6 @@
 # Point: plan
 
-Point is a small Mac menu-bar tool, separate from Rocky and Doppelganger. You press a hotkey, talk about what is on screen
+Point and Yap is a small Mac tool. You press a hotkey, talk about what is on screen
 while you point at things with the cursor, press the hotkey again, and get numbered instructions a coding agent can act on,
 each tied to the element you pointed at and backed by a cropped screenshot. For Marc only for now; nothing leaves the Mac
 except the one Claude call at the end.
@@ -21,7 +21,7 @@ except the one Claude call at the end.
 
 ## What one session produces
 
-`~/Point/sessions/<yyyy-MM-dd_HHmmss>/`
+`~/PointAndYap/sessions/<yyyy-MM-dd_HHmmss>/`
 
 - `audio.caf`: the recording.
 - `events.json`: cursor samples, clicks, points (dwells) with their AX element, app, window title, URL, and frames.
@@ -35,7 +35,7 @@ except the one Claude call at the end.
 
 ## Interface (minimal)
 
-- One window in Rocky's look (Geist, near-black on white, black buttons): Start recording, the permissions still missing,
+- One window, minimal (Geist, near-black on white, black buttons): Start recording, the permissions still missing,
   recent sessions (click to copy, folder to open). No hotkey, no menu-bar item (Marc, 17 Oct 2026).
 - While recording: a floating pill (red dot, time, Stop), excluded from screenshots, its clicks ignored.
 - When done: the instructions are on the clipboard and a short sound plays. Paste into Claude Code.
@@ -46,16 +46,16 @@ except the one Claude call at the end.
 1. Capture: hotkey, AVAudioEngine to `audio.caf`, cursor sampler (30 Hz, dwell and click detection), ScreenCaptureKit
    screenshot of the display under the cursor, AX probe at each point.
    Check: a recorded session has frames, points with AX roles, and audio.
-2. Processing (`Point --process <dir>` reruns it headless): transcribe with word times; group words into sentences (pause
+2. Processing (`PointAndYap --process <dir>` reruns it headless): transcribe with word times; group words into sentences (pause
    over 0.7 s or punctuation); attach each point to the sentence it falls in (with 0.5 s slack); crops with the cursor ring;
    write session.md.
    Check: synthetic session (voice from `say`, scripted points) lines up.
 3. Claude pass: one call to the Messages API (`claude-opus-5-5`, raw HTTP, key from
-   `~/Library/Application Support/Point/anthropic-key`), up to 12 crops plus session.md, writes instructions.md. About 0.03 to
+   `~/Library/Application Support/PointAndYap/anthropic-key`), up to 12 crops plus session.md, writes instructions.md. About 0.03 to
    0.10 USD per session. Without a key the tool stops at session.md and copies that instead.
    Check: the synthetic session's instructions name the pointed element.
 4. Package: SwiftPM release build, an .app bundle (LSUIElement, usage strings), signed with Marc's Developer ID Application
-   identity and the hardened runtime (microphone entitlement), installed to `/Applications/Point.app` so the macOS
+   identity and the hardened runtime (microphone entitlement), installed to `/Applications/Point and Yap.app` so the macOS
    permissions stick to a stable signature.
 5. Marc grants Microphone, Screen Recording and Accessibility once, records a real session, pastes it into Claude Code.
 

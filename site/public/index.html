@@ -147,8 +147,7 @@
       <h2>Built while building my company.</h2>
       <p>I made Point and Yap because it helps me build. Maybe it helps you too. It is free and open source; I share the tools I make and what I learn along the way.</p>
       <div class="stats">
-        <a href="https://github.com/mfmaur/pointandyap">★ <b data-stat="stars">0</b> stars</a>
-        <div><b data-stat="downloads">0</b> downloads</div>
+        <a href="https://github.com/mfmaur/pointandyap">★ <b data-stat="stars">0</b> stars on GitHub</a>
       </div>
     </div>
   </section>
@@ -163,7 +162,6 @@
 // Real numbers from GitHub (through /api/stats, cached by the site's Worker).
 fetch('/api/stats').then(r => r.json()).then(s => {
   document.querySelectorAll('[data-stat="stars"]').forEach(e => e.textContent = s.stars.toLocaleString('en-US'));
-  document.querySelectorAll('[data-stat="downloads"]').forEach(e => e.textContent = s.downloads.toLocaleString('en-US'));
   if (s.download) {
     const a = document.getElementById('download');
     a.href = s.download; a.removeAttribute('aria-disabled');

@@ -27,14 +27,16 @@ app=$(find "$mnt" -maxdepth 1 -name "*.app" | head -n 1)
 name=$(basename "$app")
 spctl --assess --type execute "$app" 2>/dev/null || fail "macOS did not accept the app's signature; nothing was installed."
 
-if pgrep -qx Point || pgrep -qf "/Applications/$name/"; then
+if pgrep -qx PointAndYap || pgrep -qx Point || pgrep -qf "/Applications/$name/"; then
   say "Quitting the running Point and Yap…"
   osascript -e "quit app \"${name%.app}\"" 2>/dev/null || true
+  pkill -x Point 2>/dev/null || true   # the app before 0.1.1
   sleep 1
 fi
 dest="/Applications/$name"
-if [ -w /Applications ]; then rm -rf "$dest"; ditto "$app" "$dest"
-else say "Copying to /Applications needs your password."; sudo rm -rf "$dest"; sudo ditto "$app" "$dest"; fi
+old="/Applications/Point.app"   # the name before 0.1.1
+if [ -w /Applications ]; then rm -rf "$dest" "$old"; ditto "$app" "$dest"
+else say "Copying to /Applications needs your password."; sudo rm -rf "$dest" "$old"; sudo ditto "$app" "$dest"; fi
 
 say "Installed $dest"
 open "$dest"

@@ -5,9 +5,9 @@ matter a lot here.
 
 ## What it does with data
 
-- Everything stays on your Mac in `~/Point/sessions`. Nothing is uploaded; there is no account and no analytics.
+- Everything stays on your Mac in `~/PointAndYap/sessions`. Nothing is uploaded; there is no account and no analytics.
 - Speech is transcribed with Apple's on-device model.
-- The MCP server (`Point --mcp`) is a local process that your coding agent starts. It only reads `~/Point/sessions` and
+- The MCP server (`PointAndYap --mcp`) is a local process that your coding agent starts. It only reads `~/PointAndYap/sessions` and
   writes the item states there. What an agent then sends to its own model provider is up to that agent.
 
 ## Reporting a vulnerability
