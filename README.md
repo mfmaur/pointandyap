@@ -12,10 +12,12 @@
   <a href="#mcp-tools"><img src="https://img.shields.io/badge/MCP-Claude_Code_%2F_Codex_%2F_Cursor-24292f?style=flat" alt="MCP for Claude Code, Codex and Cursor" /></a>
   &nbsp;
   <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/changelog-view-24292f?style=flat" alt="Changelog" /></a>
+  &nbsp;
+  <a href="https://github.com/mfmaur/pointandyap/actions/workflows/ci.yml"><img src="https://github.com/mfmaur/pointandyap/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
 </p>
 
 <p align="center">
-  <img src="site/public/media/loop.gif" alt="Press Control twice, point at a button and say what is wrong; the coding agent fixes it and marks it done" width="100%" />
+  <img src="site/public/media/point-and-yap-loop.gif" alt="Press Control twice, point at a button and say what is wrong; the coding agent fixes it and marks it done" width="100%" />
 </p>
 
 **Point and Yap** is a small Mac app for showing your coding agent what to change. Press Control twice, talk while you
@@ -38,13 +40,24 @@ done.
 
 ## Install
 
-1. Download `PointAndYap.dmg` from [pointandyap.com](https://pointandyap.com) or the
-   [latest release](https://github.com/mfmaur/pointandyap/releases/latest). It is signed and notarized by Apple.
-2. Drag Point and Yap into Applications and open it.
-3. Allow the three permissions it asks for.
-4. It lists the coding agents it found and asks before connecting them. Connect, or Skip and do it later in Settings.
+Requires macOS 26 or later and a Mac with Apple silicon.
 
-Needs macOS 26 on Apple silicon.
+```bash
+curl -fsSL https://pointandyap.com/install.sh | sh
+```
+
+or with Homebrew:
+
+```bash
+brew install --cask mfmaur/tap/point-and-yap
+```
+
+or by hand: download `PointAndYap.dmg` from [pointandyap.com](https://pointandyap.com) or the
+[latest release](https://github.com/mfmaur/pointandyap/releases/latest) and drag Point and Yap into Applications. Every
+build is signed and notarized by Apple; the install script checks the DMG with `spctl` before it copies anything.
+
+Then open it, allow the three permissions it asks for, and answer one question: it lists the coding agents it found and
+asks before connecting them. Connect, or Skip and do it later in Settings.
 
 ### Permissions, and why
 
@@ -112,10 +125,16 @@ works with the command above, and any agent with a shell can use `--items` and `
 --scope user`, the `[mcp_servers.point]` table in `~/.codex/config.toml`, `point` in `~/.cursor/mcp.json`, and the `point`
 links in `~/.claude/skills` and `~/.agents/skills`. Recordings are in `~/Point`.
 
-**Why macOS 26?** It uses SpeechAnalyzer, Apple's on-device speech model with word timings, to line up each word with
-where the cursor was.
+**Does it work on older Macs or Intel?** Not yet. Only speech-to-text needs macOS 26 (SpeechAnalyzer, Apple's on-device
+model with word timings, which lines up each word with where the cursor was). Wider support is planned.
 
-**Can I build it myself?** Yes: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
+**Can I build it myself?** Yes: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md). `swift test` runs the tests over a synthetic
+recording.
+
+## Contributing
+
+Issues and pull requests are welcome: [CONTRIBUTING.md](CONTRIBUTING.md). Report security issues privately as described in
+[SECURITY.md](SECURITY.md). This project follows a [code of conduct](CODE_OF_CONDUCT.md).
 
 ## License
 
