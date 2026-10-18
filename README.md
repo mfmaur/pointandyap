@@ -140,4 +140,4 @@ Issues and pull requests are welcome: [CONTRIBUTING.md](CONTRIBUTING.md). Report
 
 [MIT](LICENSE). Provided as is, without warranty of any kind.
 
-Something this helps me build. Maybe it helps you too.
+I made Point and Yap because it helps me build. Maybe it helps you too.
