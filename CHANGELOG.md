@@ -3,6 +3,9 @@
 ## Unreleased
 
 - Recent hides recordings without speech; Settings, Show recordings without speech brings them back.
+- A Bluetooth headset no longer goes into call mode while nothing is recording: the microphone is opened only for a
+  recording, on the one device it records from, and closed when it stops. Up to 0.1.3 a headset that connected after
+  the first recording stayed in call mode (muffled playback everywhere) until Point and Yap quit.
 
 ## 0.1.3
 
