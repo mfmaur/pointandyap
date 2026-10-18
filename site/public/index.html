@@ -34,6 +34,9 @@
   .cta[aria-disabled="true"] { background:var(--field); color:var(--muted); border:1px solid var(--line); cursor:default; }
   .small { margin-top:12px; font-size:13px; color:var(--faint); }
 
+  /* The 30 s film (site/film); the HTML demo below is the fallback and the phone version. */
+  .film { display:block; width:100%; max-width:880px; margin:36px auto 0; aspect-ratio:16/9; border-radius:18px; background:var(--field); border:1px solid var(--line); object-fit:cover; }
+
   /* The demo: a looping film of the real flow, in HTML. */
   .stage { position:relative; margin:36px auto 0; max-width:880px; aspect-ratio:16/10; border-radius:18px; background:var(--field); border:1px solid var(--line); overflow:hidden; }
   .app { position:absolute; left:6%; top:16%; width:54%; height:68%; background:#fff; border:1px solid var(--line); border-radius:12px; box-shadow:0 20px 50px rgba(23,24,27,.08); }
@@ -106,7 +109,9 @@
     <p class="small" id="dlnote">Coming soon · free and open source · macOS 26, Apple silicon</p>
   </header>
 
-  <div class="stage" aria-label="Point and Yap in action">
+  <video class="film" id="film" autoplay muted loop playsinline preload="auto" poster="/media/point-and-yap-poster.jpg" aria-label="Point and Yap in action"><source src="/media/point-and-yap.mp4" type="video/mp4"></video>
+
+  <div class="stage" id="stage" hidden aria-label="Point and Yap in action">
     <div class="app">
       <div class="bar"><i></i><i></i><i></i><span>Your app</span></div>
       <div class="content">
@@ -210,8 +215,18 @@ async function film() {
     await wait(3200);
   }
 }
-if (!matchMedia('(prefers-reduced-motion: reduce)').matches) film();
-else { ['save','sync'].forEach(i => $(i).classList.add('fixed')); }
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+function demo() {
+  $('film').remove(); $('stage').hidden = false;
+  if (!reduced) film();
+  else { ['save','sync'].forEach(i => $(i).classList.add('fixed')); }
+}
+// The video on wide screens; on a phone its text is too small, so the HTML demo (laid out for phones) plays instead.
+if (matchMedia('(max-width:720px)').matches || !$('film').canPlayType('video/mp4')) demo();
+else {
+  $('film').querySelector('source').addEventListener('error', demo);
+  if (reduced) { $('film').removeAttribute('autoplay'); $('film').pause(); $('film').controls = true; }
+}
 </script>
 </body>
 </html>

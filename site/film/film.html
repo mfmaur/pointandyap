@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Point and Yap film</title>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500&family=Geist+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=block" rel="stylesheet">
+<style>
+  /* One 1920x1080 frame. render(t) sets every element from t alone, so any frame can be rebuilt exactly. */
+  :root { --ink:#17181B; --ink2:#3A3C41; --muted:#6B6E76; --faint:#9A9DA4; --line:#E6E7EA; --field:#F6F6F7; --gold:#FFD66B; }
+  * { box-sizing:border-box; margin:0; }
+  html, body { background:#fff; overflow:hidden; -webkit-font-smoothing:antialiased; }
+  body { font-family:Geist, system-ui, sans-serif; color:var(--ink); }
+  .frame { position:absolute; left:0; top:0; width:1920px; height:1080px; transform-origin:0 0; overflow:hidden; }
+  .stage { position:absolute; inset:0; background:var(--field); overflow:hidden; }
+
+  .menubar { position:absolute; left:0; right:0; top:0; height:44px; background:rgba(255,255,255,.92); border-bottom:1px solid var(--line); display:flex; align-items:center; padding:0 28px; gap:30px; font-size:17px; color:var(--ink2); }
+  .menubar b { font-weight:500; color:var(--ink); }
+  .menubar .right { margin-left:auto; display:flex; align-items:center; gap:22px; color:var(--ink2); }
+  .menubar img { width:22px; height:22px; display:block; }
+
+  .app { position:absolute; width:1040px; height:700px; background:#fff; border:1px solid var(--line); border-radius:18px; box-shadow:0 30px 80px rgba(23,24,27,.09); overflow:hidden; }
+  .bar { height:56px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:9px; padding:0 22px; }
+  .bar i { width:14px; height:14px; border-radius:50%; background:var(--line); display:block; }
+  .bar span { margin-left:16px; font-size:18px; color:var(--muted); }
+  .content { padding:56px 72px; }
+  .content h3 { font-weight:500; font-size:40px; letter-spacing:-.01em; }
+  .content .lead { margin-top:6px; font-size:20px; color:var(--muted); }
+  .row { margin-top:34px; padding-top:34px; border-top:1px solid var(--line); display:flex; align-items:center; justify-content:space-between; font-size:24px; color:var(--ink2); height:56px; box-sizing:content-box; }
+  .row .v { color:var(--ink); }
+  .save { border-radius:12px; padding:12px 30px; color:#fff; font-size:22px; font-weight:500; }
+  .sync { font-variant-numeric:tabular-nums; }
+
+  .agent { position:absolute; left:1180px; top:300px; width:660px; height:700px; background:#17181B; color:#E6E7EA; border-radius:18px; font-family:"Geist Mono", monospace; font-size:22px; line-height:1.62; box-shadow:0 30px 80px rgba(23,24,27,.16); overflow:hidden; }
+  .agent .tb { height:52px; display:flex; align-items:center; gap:9px; padding:0 22px; border-bottom:1px solid #2A2C31; color:#8B8E96; font-size:17px; }
+  .agent .tb i { width:13px; height:13px; border-radius:50%; background:#34363C; display:block; }
+  .agent .tb span { margin-left:14px; }
+  .agent .body { padding:22px 28px; white-space:pre; }
+  .agent .l { opacity:0; }
+  .agent .k { color:var(--gold); } .agent .ok { color:#7BD88F; } .agent .dim { color:#8B8E96; } .agent .del { color:#FF8A8A; }
+
+  .queue { position:absolute; left:1180px; top:64px; width:660px; background:#fff; border:1px solid var(--line); border-radius:18px; box-shadow:0 20px 60px rgba(23,24,27,.09); padding:20px 24px; }
+  .queue .h { display:flex; align-items:center; gap:12px; font-size:18px; font-weight:500; }
+  .queue .h img { width:26px; height:26px; }
+  .queue .h .n { margin-left:auto; color:var(--muted); font-weight:400; }
+  .queue .q { margin-top:14px; display:flex; align-items:center; gap:14px; font-size:20px; color:var(--ink); }
+  .queue .q span:first-child { flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .badge { position:relative; width:84px; height:32px; border-radius:999px; font-size:16px; font-weight:500; text-align:center; line-height:32px; }
+  .badge b { position:absolute; inset:0; border-radius:999px; font-weight:500; }
+  .badge .open { background:#FFF4D1; color:#8A6400; }
+  .badge .done { background:#E3F3E8; color:#2F7A4B; }
+
+  .pill { position:absolute; left:960px; top:66px; display:flex; align-items:center; gap:14px; background:#fff; border:1px solid var(--line); border-radius:18px; padding:9px 9px 9px 20px; font-size:20px; box-shadow:0 12px 36px rgba(23,24,27,.10); white-space:nowrap; }
+  .pill .dot { width:12px; height:12px; border-radius:50%; background:#E5484D; }
+  .pill .t { font-family:"Geist Mono", monospace; width:52px; }
+  .pill .stop { background:var(--ink); color:#fff; border-radius:11px; padding:7px 16px; }
+  .toast { position:absolute; left:960px; top:66px; background:var(--ink); color:#fff; border-radius:999px; padding:13px 28px; font-size:22px; white-space:nowrap; box-shadow:0 12px 36px rgba(23,24,27,.18); }
+
+  .key { position:absolute; left:960px; top:916px; width:184px; height:104px; margin-left:-92px; background:#fff; border:1px solid var(--line); border-radius:16px; box-shadow:0 6px 0 #E1E2E6, 0 14px 30px rgba(23,24,27,.08); font-size:22px; color:var(--ink2); padding:14px 18px; display:flex; flex-direction:column; justify-content:space-between; }
+  .key .sym { font-size:30px; line-height:1; text-align:right; }
+
+  .said { position:absolute; left:960px; top:940px; max-width:1200px; background:#fff; border:1px solid var(--line); border-radius:16px; padding:16px 26px 18px; font-size:34px; line-height:1.3; box-shadow:0 12px 36px rgba(23,24,27,.08); white-space:nowrap; }
+  .said b { display:block; font-size:17px; font-weight:500; color:var(--muted); margin-bottom:2px; }
+  .said .w { opacity:0; }
+
+  .ring { position:absolute; width:88px; height:88px; margin:-44px 0 0 -44px; border:4px solid var(--gold); border-radius:50%; }
+  .cursor { position:absolute; width:40px; height:40px; margin:-4px 0 0 -6px; }
+
+  .end { position:absolute; inset:0; background:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }
+  .end img { width:120px; height:120px; }
+  .end h1 { margin-top:28px; font-family:"Instrument Serif", Georgia, serif; font-weight:400; font-size:128px; line-height:1; letter-spacing:-.02em; }
+  .end h2 { margin-top:14px; font-family:"Instrument Serif", Georgia, serif; font-weight:400; font-size:64px; line-height:1.05; color:var(--ink2); }
+  .end h2 em { font-style:italic; }
+  .end p { margin-top:44px; font-family:"Geist Mono", monospace; font-size:28px; color:var(--muted); }
+</style>
+</head>
+<body>
+<div class="frame" id="frame">
+  <div class="stage">
+    <div class="menubar"><b>Acme</b><span>File</span><span>Edit</span><span>View</span><span>Window</span>
+      <div class="right"><img src="../public/icon-160.png" alt=""><span>Fri 9:41</span></div></div>
+
+    <div class="app" id="app">
+      <div class="bar"><i></i><i></i><i></i><span>Acme · Settings</span></div>
+      <div class="content">
+        <h3>Settings</h3>
+        <p class="lead">Acme Studio workspace</p>
+        <div class="row"><span>Profile</span><span class="save" id="save">Save</span></div>
+        <div class="row"><span>Last sync</span><span class="sync v" id="sync">3 days ago</span></div>
+        <div class="row"><span>Plan</span><span class="v">Team, 8 seats</span></div>
+      </div>
+    </div>
+
+    <div class="queue" id="queue">
+      <div class="h"><img src="../public/icon-160.png" alt="">Point and Yap<span class="n" id="qn">2 open</span></div>
+      <div class="q"><span>This button should be blue.</span><span class="badge"><b class="open">Open</b><b class="done">Done</b></span></div>
+      <div class="q"><span>And this date should say today.</span><span class="badge"><b class="open">Open</b><b class="done">Done</b></span></div>
+    </div>
+
+    <div class="agent" id="agent">
+      <div class="tb"><i></i><i></i><i></i><span>claude · ~/acme</span></div>
+      <div class="body" id="term"></div>
+    </div>
+
+    <div class="pill" id="pill"><span class="dot"></span><span class="t" id="clock">0:00</span><span class="stop" id="stop">Stop</span></div>
+    <div class="toast" id="toast">New in Point and Yap: 2 things to fix</div>
+    <div class="key" id="key"><span class="sym">⌃</span><span>control</span></div>
+    <div class="said" id="said"><b>You say</b><span id="words"></span></div>
+    <div class="ring" id="ring"></div>
+    <svg class="cursor" id="cursor" viewBox="0 0 22 22"><path d="M3 2l14 8.2-6.1 1.4-2.9 5.9z" fill="#17181B" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"/></svg>
+  </div>
+
+  <div class="end" id="end">
+    <img src="../public/icon-160.png" alt="">
+    <h1>Point and Yap</h1>
+    <h2>Show, <em>don’t type.</em></h2>
+    <p>pointandyap.com</p>
+  </div>
+</div>
+
+<script>
+// ?mode=full (30 s film) or ?mode=loop (6 s seamless loop); ?t=12.5 freezes one frame; no t plays in real time.
+const params = new URLSearchParams(location.search);
+const MODE = params.get('mode') === 'loop' ? 'loop' : 'full';
+const $ = id => document.getElementById(id);
+
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+const ease = p => p < .5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
+const easeOut = p => 1 - Math.pow(1 - p, 3);
+const prog = (t, a, b) => clamp((t - a) / (b - a));
+const lerp = (a, b, p) => a + (b - a) * p;
+// 0 before a, 1 between a+fade and b-fade, 0 after b.
+const window_ = (t, a, b, fade = .3) => Math.min(prog(t, a, a + fade), 1 - prog(t, b - fade, b));
+const mix = (c1, c2, p) => 'rgb(' + c1.map((v, i) => Math.round(lerp(v, c2[i], p))).join(',') + ')';
+
+// Lines the agent prints: [time, html]. Times are per mode.
+const TERM_FULL = [
+  [18.3, '<span class="dim">›</span> fix what I pointed at'],
+  [19.0, ''],
+  [19.0, '<span class="k">⏺</span> point · get_open_items'],
+  [19.5, '<span class="dim">  2 open items</span>'],
+  [19.8, '<span class="dim">  1. “This button should be blue.”</span>'],
+  [19.8, '<span class="dim">     on button “Save”</span>'],
+  [20.1, '<span class="dim">  2. “And this date should say today.”</span>'],
+  [20.1, '<span class="dim">     on text “3 days ago”</span>'],
+  [20.8, '<span class="k">⏺</span> Edit SettingsView.swift'],
+  [21.2, '<span class="del">  - .tint(.gray)</span>'],
+  [21.2, '<span class="ok">  + .tint(.accentColor)</span>'],
+  [22.0, '<span class="k">⏺</span> Edit SyncRow.swift'],
+  [22.4, '<span class="ok">  + Text(lastSync.relativeDay)</span>'],
+  [23.2, '<span class="k">⏺</span> point · mark_done 1, 2'],
+  [23.7, '<span class="ok">  ✓ 2 items done</span>'],
+];
+const TERM_LOOP = [
+  [0, '<span class="dim">›</span> fix what I pointed at'],
+  [3.3, ''],
+  [3.3, '<span class="k">⏺</span> point · get_open_items'],
+  [3.6, '<span class="dim">  “This button should be blue.”</span>'],
+  [3.6, '<span class="dim">  on button “Save”</span>'],
+  [4.0, '<span class="k">⏺</span> Edit SettingsView.swift'],
+  [4.3, '<span class="del">  - .tint(.gray)</span>'],
+  [4.3, '<span class="ok">  + .tint(.accentColor)</span>'],
+  [4.9, '<span class="k">⏺</span> point · mark_done'],
+  [5.2, '<span class="ok">  ✓ Done</span>'],
+];
+const TERM = MODE === 'loop' ? TERM_LOOP : TERM_FULL;
+$('term').innerHTML = TERM.map(([, h]) => '<div class="l">' + (h || ' ') + '</div>').join('');
+const termLines = [...$('term').children];
+
+// Words of each caption, with when they start.
+const SAY1 = 'This button should be blue.'.split(' ');
+const SAY2 = 'And this date should say today.'.split(' ');
+
+const GRAY = [185, 187, 192], BLUE = [47, 111, 235], INK = [23, 24, 27], GREEN = [47, 122, 75];
+const APP_CENTER = { x: 440, y: 190 }, APP_LEFT = { x: 80, y: 190 };
+
+// Positions of things inside the 1920x1080 frame, measured once (offsets ignore the preview scale).
+function offset(el) {
+  let x = 0, y = 0, n = el;
+  while (n && n.id !== 'frame') { x += n.offsetLeft; y += n.offsetTop; n = n.offsetParent; }
+  return { x, y, w: el.offsetWidth, h: el.offsetHeight };
+}
+let P = {};
+function measure() {
+  const app = $('app'), start = MODE === 'loop' ? APP_LEFT : APP_CENTER;
+  app.style.left = start.x + 'px'; app.style.top = start.y + 'px';
+  const at = (el, dx = .5, dy = .5) => { const o = offset(el); return { x: o.x + o.w * dx, y: o.y + o.h * dy }; };
+  P.save = at($('save')); P.sync = at($('sync'), .45);
+  $('pill').style.transform = 'translateX(-50%)';
+  P.stop = at($('stop')); P.stop.x -= $('pill').offsetWidth / 2; // offsets ignore the pill's translateX(-50%)
+}
+
+// The cursor: [time it arrives, x, y]; it travels from the previous stop with an ease.
+const PATH_FULL = () => [[0, 1560, 860], [3.4, 1560, 860], [4.6, P.save.x, P.save.y], [8.6, P.save.x, P.save.y], [9.8, P.sync.x, P.sync.y],
+  [13.4, P.sync.x, P.sync.y], [14.3, P.stop.x, P.stop.y], [14.6, P.stop.x, P.stop.y], [15.4, 1290, 360], [16.6, 1290, 360], [17.6, 1150, 1010]];
+const PATH_LOOP = () => [[0, 980, 960], [0.3, 980, 960], [1.1, P.save.x, P.save.y], [2.7, P.save.x, P.save.y], [3.4, 940, 990]];
+function cursorAt(t, path) {
+  let [t0, x0, y0] = path[0];
+  for (const [t1, x1, y1] of path.slice(1)) {
+    if (t < t1) { const p = ease(prog(t, t0, t1)); return { x: lerp(x0, x1, p), y: lerp(y0, y1, p) }; }
+    [t0, x0, y0] = [t1, x1, y1];
+  }
+  return { x: x0, y: y0 };
+}
+
+function words(t, list, start, step = .3) {
+  return list.map((w, i) => '<span class="w" style="opacity:' + prog(t, start + i * step, start + i * step + .18).toFixed(3) + '">' + w + '</span>').join(' ');
+}
+
+function show(el, o, dy = 0, scale = 1, extra = '') {
+  el.style.opacity = o.toFixed(3);
+  el.style.transform = extra + ' translateY(' + ((1 - o) * dy).toFixed(2) + 'px) scale(' + scale + ')';
+  el.style.visibility = o <= 0.001 ? 'hidden' : 'visible';
+}
+
+function renderFull(t) {
+  // App: centered, slides left when the agent comes in.
+  const slide = ease(prog(t, 16.9, 17.8));
+  $('app').style.left = lerp(APP_CENTER.x, APP_LEFT.x, slide) + 'px';
+  $('app').style.top = APP_CENTER.y + 'px';
+
+  // Control twice.
+  const k = window_(t, 0.9, 3.0, .3);
+  const press = Math.max(1 - Math.abs(t - 1.45) / .12, 1 - Math.abs(t - 1.85) / .12, 0);
+  show($('key'), k, 20);
+  $('key').style.transform += ' translateY(' + (press * 5).toFixed(2) + 'px)';
+  $('key').style.boxShadow = '0 ' + (6 - press * 5).toFixed(2) + 'px 0 #E1E2E6, 0 14px 30px rgba(23,24,27,.08)';
+
+  // Recording pill, from the second press to Stop.
+  const pill = Math.min(easeOut(prog(t, 2.0, 2.45)), 1 - ease(prog(t, 14.45, 14.85)));
+  show($('pill'), pill, -60, 1, 'translateX(-50%)');
+  const rec = clamp(t - 2.0, 0, 12.4);
+  $('clock').textContent = Math.floor(rec / 60) + ':' + String(Math.floor(rec % 60)).padStart(2, '0');
+  $('stop').style.background = t > 14.25 && t < 14.5 ? '#3A3C41' : '';
+
+  // Captions.
+  const s1 = window_(t, 4.9, 8.7, .25), s2 = window_(t, 10.1, 13.5, .25);
+  const sayOn = Math.max(s1, s2);
+  show($('said'), sayOn, 16, 1, 'translateX(-50%)');
+  $('words').innerHTML = t < 9.4 ? words(t, SAY1, 5.05) : words(t, SAY2, 10.25);
+
+  // Gold ring while the cursor rests on a thing.
+  const c = cursorAt(t, PATH_FULL());
+  const ring = Math.max(window_(t, 4.7, 8.5, .25), window_(t, 9.9, 13.3, .25));
+  const pulse = 1 + .05 * Math.sin((t - 4.7) * Math.PI * 1.2) * ring;
+  $('ring').style.left = c.x + 'px'; $('ring').style.top = c.y + 'px';
+  $('ring').style.opacity = ring.toFixed(3);
+  $('ring').style.transform = 'scale(' + (lerp(.6, 1, ring) * pulse).toFixed(3) + ')';
+  $('cursor').style.left = c.x + 'px'; $('cursor').style.top = c.y + 'px';
+  const click = Math.max(1 - Math.abs(t - 14.35) / .12, 0);
+  $('cursor').style.transform = 'scale(' + (1 - click * .15).toFixed(3) + ')';
+  show($('cursor'), 1 - prog(t, 25.4, 25.8));
+
+  // Toast after Stop.
+  const toast = Math.min(easeOut(prog(t, 15.0, 15.45)), 1 - ease(prog(t, 16.6, 17.0)));
+  show($('toast'), toast, -60, 1, 'translateX(-50%)');
+
+  // Queue panel and agent.
+  show($('queue'), easeOut(prog(t, 17.5, 18.0)), -24);
+  show($('agent'), easeOut(prog(t, 17.7, 18.2)), 0, 1, 'translateX(' + ((1 - easeOut(prog(t, 17.7, 18.2))) * 40).toFixed(1) + 'px)');
+  const typed = 'fix what I pointed at';
+  TERM.forEach(([at], i) => termLines[i].style.opacity = prog(t, at, at + .12).toFixed(3));
+  termLines[0].innerHTML = '<span class="dim">›</span> ' + typed.slice(0, Math.floor(clamp((t - 18.3) / .7) * typed.length));
+  const done = ease(prog(t, 23.4, 23.7));
+  document.querySelectorAll('.badge .done').forEach(b => b.style.opacity = done.toFixed(3));
+  document.querySelectorAll('.badge .open').forEach(b => b.style.opacity = (1 - done).toFixed(3));
+  $('qn').textContent = t < 23.55 ? '2 open' : '2 done';
+
+  // The fixes.
+  const f1 = ease(prog(t, 21.3, 21.7)), f2 = prog(t, 22.5, 22.9);
+  $('save').style.background = mix(GRAY, BLUE, f1);
+  $('sync').textContent = f2 < .5 ? '3 days ago' : 'Today, 9:41';
+  $('sync').style.color = mix(INK, GREEN, f2 < .5 ? 0 : ease((f2 - .5) * 2));
+  $('sync').style.opacity = (Math.abs(f2 - .5) * 2).toFixed(3);
+
+  // End card.
+  const end = ease(prog(t, 25.6, 26.3));
+  $('end').style.opacity = end.toFixed(3);
+  $('end').style.visibility = end > 0 ? 'visible' : 'hidden';
+  [...$('end').children].forEach((el, i) => {
+    const p = easeOut(prog(t, 26.0 + i * .18, 26.6 + i * .18));
+    el.style.opacity = p.toFixed(3); el.style.transform = 'translateY(' + ((1 - p) * 18).toFixed(1) + 'px)';
+  });
+}
+
+// The loop: 6 s shown, drawn from a 7 s source whose last second is blended over its first (see render()).
+function renderLoop(t) {
+  $('app').style.left = APP_LEFT.x + 'px'; $('app').style.top = APP_LEFT.y + 'px';
+  show($('key'), 0); show($('end'), 0);
+  const pill = 1 - ease(prog(t, 2.75, 3.05));
+  show($('pill'), pill, -60, 1, 'translateX(-50%)');
+  $('clock').textContent = '0:0' + Math.floor(clamp(t + 2, 0, 9));
+  $('stop').style.background = '';
+  const s = window_(t, 1.0, 2.9, .2);
+  show($('said'), s, 16, 1, 'translateX(-50%)');
+  $('words').innerHTML = words(t, SAY1, 1.1, .26);
+  const c = cursorAt(t, PATH_LOOP());
+  const ring = window_(t, 1.05, 2.75, .2);
+  $('ring').style.left = c.x + 'px'; $('ring').style.top = c.y + 'px';
+  $('ring').style.opacity = ring.toFixed(3);
+  $('ring').style.transform = 'scale(' + lerp(.6, 1, ring).toFixed(3) + ')';
+  $('cursor').style.left = c.x + 'px'; $('cursor').style.top = c.y + 'px'; $('cursor').style.transform = '';
+  show($('cursor'), 1);
+  $('toast').textContent = 'New in Point and Yap: 1 thing to fix';
+  show($('toast'), Math.min(easeOut(prog(t, 3.05, 3.4)), 1 - ease(prog(t, 4.6, 4.9))), -60, 1, 'translateX(-50%)');
+  show($('queue'), 0);
+  show($('agent'), 1);
+  $('agent').style.top = '190px';
+  TERM.forEach(([at], i) => termLines[i].style.opacity = (at === 0 ? 1 : prog(t, at, at + .12)).toFixed(3));
+  $('save').style.background = mix(GRAY, BLUE, ease(prog(t, 4.4, 4.75)));
+  $('sync').textContent = '3 days ago'; $('sync').style.color = ''; $('sync').style.opacity = 1;
+}
+
+const DURATION = MODE === 'loop' ? 6 : 30;
+const BLEND = 1; // loop: seconds of overlap
+function render(t) {
+  if (MODE === 'full') return renderFull(t);
+  // Two copies: the bottom shows source t+6, the top source t fading in over the first second.
+  renderLoop(t < BLEND ? t + 6 : t);
+  const top = $('frame2');
+  if (t < BLEND) {
+    top.style.display = 'block'; top.style.opacity = (t / BLEND).toFixed(3);
+    copyInto(top, t);
+  } else top.style.display = 'none';
+}
+// For the loop's blend: a clone of the frame rendered at another t.
+function copyInto(top, t) {
+  const bottomState = $('frame').innerHTML;
+  renderLoop(t);
+  top.innerHTML = $('frame').innerHTML;
+  $('frame').innerHTML = bottomState;
+  rebind();
+}
+function rebind() { termLines.splice(0, termLines.length, ...$('term').children); }
+
+function fit() {
+  const s = Math.min(innerWidth / 1920, innerHeight / 1080);
+  for (const f of document.querySelectorAll('.frame')) f.style.transform = params.has('capture') ? '' : 'scale(' + s + ')';
+}
+
+window.DURATION = DURATION;
+window.render = render;
+window.ready = (async () => {
+  if (MODE === 'loop') {
+    const top = document.createElement('div');
+    top.className = 'frame'; top.id = 'frame2'; top.style.display = 'none';
+    document.body.appendChild(top);
+  }
+  await document.fonts.ready;
+  await Promise.all([...document.images].map(i => i.decode().catch(() => {})));
+  measure(); fit(); addEventListener('resize', fit);
+  if (params.has('t')) render(+params.get('t'));
+  else if (!params.has('capture')) {
+    const t0 = performance.now();
+    const loop = () => { render(((performance.now() - t0) / 1000) % DURATION); requestAnimationFrame(loop); };
+    loop();
+  }
+  return true;
+})();
+</script>
+</body>
+</html>
