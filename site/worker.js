@@ -1,5 +1,30 @@
 // pointandyap.com: the static page, plus /api/stats with the real GitHub numbers (stars, release downloads), cached 10 min.
+// Every page view, download, installer run and app update check is counted in Analytics Engine (dataset
+// pointandyap_events): no cookies, no script, no IP address kept; a visitor is a hash that changes every day.
 const REPO = "mfmaur/pointandyap";
+const LATEST_DMG = `https://github.com/${REPO}/releases/latest/download/PointAndYap.dmg`;
+const BOT = /bot|crawl|spider|slurp|preview|facebookexternalhit|embedly|monitor|headless|python|go-http|wget|curl|httpclient|okhttp|axios|node-fetch/i;
+
+async function track(env, request, event, url) {
+  if (!env.EVENTS) return;
+  const ua = request.headers.get("user-agent") ?? "";
+  const day = new Date().toISOString().slice(0, 10);
+  const ip = request.headers.get("cf-connecting-ip") ?? "";
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`${env.VISITOR_SALT ?? ""}|${day}|${ip}|${ua}`));
+  const visitor = [...new Uint8Array(digest).slice(0, 8)].map((b) => b.toString(16).padStart(2, "0")).join("");
+  let refHost = "";
+  try { refHost = new URL(request.headers.get("referer") ?? "").hostname.replace(/^www\./, ""); } catch {}
+  if (refHost === "pointandyap.com") refHost = "";
+  const source = url.searchParams.get("ref") ?? url.searchParams.get("utm_source") ?? "";
+  const client = /Sparkle/.test(ua) ? "app" : /^curl\//.test(ua) ? "curl" : BOT.test(ua) ? "bot"
+    : /iPhone|iPad|Android/.test(ua) ? "mobile" : /Macintosh/.test(ua) ? "mac" : "other";
+  const version = /Point(?:%20| )?and(?:%20| )?Yap\/([\d.]+)/i.exec(ua)?.[1] ?? "";
+  env.EVENTS.writeDataPoint({
+    indexes: [event],
+    blobs: [event, url.pathname, refHost, source.slice(0, 40), request.cf?.country ?? "", client, visitor, version],
+    doubles: [1],
+  });
+}
 
 async function stats() {
   const h = { "User-Agent": "pointandyap.com", Accept: "application/vnd.github+json" };
@@ -40,7 +65,16 @@ async function shields() {
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
-    if (url.hostname === "www.pointandyap.com") return Response.redirect(`https://pointandyap.com${url.pathname}`, 301);
+    if (url.hostname === "www.pointandyap.com") return Response.redirect(`https://pointandyap.com${url.pathname}${url.search}`, 301);
+    // The Download buttons (site and README) come through here, so a download is counted with where it came from.
+    if (url.pathname === "/download") {
+      ctx.waitUntil(track(env, request, "download", url));
+      return Response.redirect(LATEST_DMG, 302);
+    }
+    if (request.method === "GET") {
+      const event = url.pathname === "/" ? "view" : url.pathname === "/install.sh" ? "install" : url.pathname === "/appcast.xml" ? "update_check" : null;
+      if (event) ctx.waitUntil(track(env, request, event, url));
+    }
     if (url.pathname === "/api/stats") {
       const cache = caches.default, key = new Request("https://pointandyap.com/api/stats?v=launch4");
       let res = await cache.match(key);

@@ -10,3 +10,8 @@ workers_dev = false
 directory = "./public"
 binding = "ASSETS"
 run_worker_first = true
+
+# Page views, downloads, installer runs and update checks (see track() in worker.js). VISITOR_SALT is a secret.
+[[analytics_engine_datasets]]
+binding = "EVENTS"
+dataset = "pointandyap_events"

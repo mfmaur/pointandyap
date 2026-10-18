@@ -37,7 +37,6 @@
   .sub { margin:22px auto 0; max-width:440px; color:var(--muted); font-size:18px; }
   .cta { margin-top:30px; display:inline-flex; align-items:center; gap:10px; background:var(--ink); color:#fff; text-decoration:none; border-radius:10px; padding:13px 22px; font-weight:500; font-size:15px; }
   .cta .apple { width:16px; height:16px; margin-top:-2px; }
-  .cta[aria-disabled="true"] { background:var(--field); color:var(--muted); border:1px solid var(--line); cursor:default; }
   .small { margin-top:12px; font-size:13px; color:var(--faint); }
 
   /* The 30 s film (site/film); the HTML demo below is the fallback and the phone version. */
@@ -111,7 +110,7 @@
   <header>
     <h1>Show,<br><em>don’t type.</em></h1>
     <p class="sub">Talk and point at your screen. Your coding agent gets the to-do list.</p>
-    <a class="cta" id="download" href="#" aria-disabled="true"><svg class="apple" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/></svg>Download for Mac</a>
+    <a class="cta" id="download" href="/download"><svg class="apple" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/></svg>Download for Mac</a>
     <p class="small" id="dlnote">Free and open source</p>
   </header>
 
@@ -165,14 +164,6 @@
 </div>
 
 <script>
-// The latest DMG from GitHub (through /api/stats, cached by the site's Worker).
-fetch('/api/stats').then(r => r.json()).then(s => {
-  if (s.download) {
-    const a = document.getElementById('download');
-    a.href = s.download; a.removeAttribute('aria-disabled');
-  }
-}).catch(() => {});
-
 // The demo film: a loop of the real flow.
 const $ = id => document.getElementById(id);
 const stage = document.querySelector('.stage');

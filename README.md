@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/mfmaur/pointandyap/releases/latest/download/PointAndYap.dmg"><img src="https://img.shields.io/badge/Download_for_Mac-17181B?style=for-the-badge&amp;logo=apple&amp;logoColor=white" alt="Download Point and Yap for Mac" height="44" /></a>
+  <a href="https://pointandyap.com/download?ref=github"><img src="https://img.shields.io/badge/Download_for_Mac-17181B?style=for-the-badge&amp;logo=apple&amp;logoColor=white" alt="Download Point and Yap for Mac" height="44" /></a>
 </p>
 <p align="center"><sub>Free · macOS 26 on Apple silicon · or <code>curl -fsSL https://pointandyap.com/install.sh | sh</code></sub></p>
 
@@ -125,6 +125,10 @@ POINTANDYAP_AGENT=my-agent "/Applications/Point and Yap.app/Contents/MacOS/Point
 
 **Does anything leave my Mac?** Point and Yap sends nothing anywhere; it only checks for updates. Your coding agent sends
 what it reads (your words and the crops) to its model, as with anything you give it. See [Runs on your Mac](#runs-on-your-mac).
+
+**Does pointandyap.com track me?** It counts page views, downloads, installer runs and the app's update checks (with
+the app version and country), to know how many people come and use it. No cookies, no tracking script, no IP address
+kept; a visitor is a hash that changes every day.
 
 **Which agents work?** Claude Code, Codex and Cursor are connected for you. Any MCP client that runs a local stdio server
 works with the command above, and any agent with a shell can use `--items` and `--done`.

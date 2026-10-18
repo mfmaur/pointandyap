@@ -83,3 +83,9 @@ The update key's public half is `SUPublicEDKey` in `Resources/Info.plist`; keep 
 up. Losing it means installed copies can no longer be updated. To test an update locally, serve a feed and set
 `defaults write com.marcmaurer.pointandyap updateFeedURL <url>` (the download must still be signed); delete it after.
 
+## Numbers
+
+`node scripts/stats.mjs` prints who comes and from where: GitHub views, visitors, clones, referrers, stars and DMG
+downloads, and pointandyap.com's views, visitors, downloads, installer runs and copies in use (from the Worker's
+Analytics Engine dataset `pointandyap_events`; needs `CLOUDFLARE_API_TOKEN`). GitHub keeps traffic for 14 days only, so
+`node scripts/stats.mjs --snapshot` saves it daily to `~/.pointandyap-stats` (a LaunchAgent can run it).
