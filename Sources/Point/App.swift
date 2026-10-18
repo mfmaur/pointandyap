@@ -5,15 +5,18 @@ import SwiftUI
 struct Main {
     static func main() {
         let args = CommandLine.arguments
+        // The queue from a shell, for agents without the MCP:
+        //   Point --items            open and in-progress items
+        //   Point --done <id>... [--note "what changed"]
+        if args.contains("--items") || args.contains("--done") { QueueCLI.run(args); return }
         // Local MCP server for coding agents: Point --mcp
         if args.contains("--mcp") { MCPServer.run(); return }
-        // Headless: Point --process <session dir> [--no-claude]
+        // Headless: Point --process <session dir>
         if let i = args.firstIndex(of: "--process"), i + 1 < args.count {
             let dir = URL(fileURLWithPath: args[i + 1])
-            let useClaude = !args.contains("--no-claude")
             let done = DispatchSemaphore(value: 0)
             Task.detached {
-                let text = await Process.run(dir: dir, useClaude: useClaude) { print("point: \($0)") }
+                let text = await Process.run(dir: dir) { print("point: \($0)") }
                 print(text)
                 done.signal()
             }
@@ -56,7 +59,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         window.center()
         window.setFrameAutosaveName("PointMain")
 
-        pill = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 170, height: 40), styleMask: [.borderless, .nonactivatingPanel],
+        pill = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 200, height: 40), styleMask: [.borderless, .nonactivatingPanel],
                        backing: .buffered, defer: false)
         pill.level = .statusBar
         pill.isFloatingPanel = true
@@ -68,7 +71,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         pill.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         pill.appearance = NSAppearance(named: .aqua)
         let host = NSHostingView(rootView: PillView(state: state))
-        host.frame = NSRect(x: 0, y: 0, width: 170, height: 40)
+        host.frame = NSRect(x: 0, y: 0, width: 200, height: 40)
         pill.contentView = host
 
         NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main) { [weak self] n in
@@ -83,7 +86,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             MainActor.assumeIsolated { if let self, self.window.isVisible, self.state.phase == .idle { self.state.loadSessions() } }
         }
         state.refreshAccess()
-        doubleControl = DoubleControl { [weak self] in self?.state.toggle() }
+        doubleControl = DoubleControl(fire: { [weak self] in self?.state.toggle() },
+                                      escape: { [weak self] in self?.state.cancel() })
         state.loadSessions()
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
@@ -102,7 +106,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             window.orderOut(nil)
             let screen = NSScreen.main ?? NSScreen.screens[0]
             let f = screen.visibleFrame
-            pill.setFrameOrigin(NSPoint(x: f.midX - 85, y: f.maxY - 52))
+            pill.setFrameOrigin(NSPoint(x: f.midX - 100, y: f.maxY - 52))
             pill.orderFrontRegardless()
             // Hand the screen back to the app that was in front before Point.
             previousApp?.activate()

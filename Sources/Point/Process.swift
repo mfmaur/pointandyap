@@ -1,8 +1,8 @@
 import Foundation
 
-/// From a recorded folder to session.md and instructions.md. Returns the text to put on the clipboard.
+/// From a recorded folder to the timeline (session.md) and crops, all on this Mac. Returns session.md.
 enum Process {
-    static func run(dir: URL, useClaude: Bool = true, log: (String) -> Void = { NSLog("point: \($0)") },
+    static func run(dir: URL, log: (String) -> Void = { NSLog("point: \($0)") },
                     onTimeline: (@MainActor () -> Void)? = nil) async -> String {
         guard let data = try? Data(contentsOf: dir.appendingPathComponent("events.json")),
               let events = try? JSONDecoder.iso.decode(SessionEvents.self, from: data) else {
@@ -25,22 +25,6 @@ enum Process {
 
         let out = Builder.build(dir: dir, events: events, words: words)
         if let onTimeline { await onTimeline() }
-        guard useClaude, !words.isEmpty else { return out.markdown }
-
-        // The API when a key works, else the local Claude Code CLI, else session.md as it is.
-        var text: String?
-        if Claude.apiKey != nil {
-            let crops = out.attached.compactMap { i in out.crops[i].map { (index: i, path: dir.appendingPathComponent($0)) } }
-            do { text = try await Claude.instructions(sessionMarkdown: out.markdown, crops: crops) } catch {
-                log("claude API failed: \(error.localizedDescription)")
-            }
-        }
-        if text == nil, Claude.cli != nil {
-            do { text = try await Claude.instructionsWithCLI(dir: dir) } catch { log("claude CLI failed: \(error.localizedDescription)") }
-        }
-        guard let text else { return out.markdown }
-        let full = text + "\n\n---\nFrom a Point session; the aligned timeline is in `\(dir.appendingPathComponent("session.md").path)`.\n"
-        try? full.write(to: dir.appendingPathComponent("instructions.md"), atomically: true, encoding: .utf8)
-        return full
+        return out.markdown
     }
 }

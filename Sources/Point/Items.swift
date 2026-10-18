@@ -1,7 +1,6 @@
 import Foundation
 
-/// The work queue: every session splits into items (one per numbered instruction, or per pointed sentence of the timeline
-/// when no instructions exist). Each item is open, in progress (an agent works on it), or done; the state lives in the session's state.json
+/// The work queue: each recording is one item (an agent does everything said in it, then marks it done). Each item is open, in progress (an agent works on it), or done; the state lives in the session's state.json
 /// and every change goes through one lock, so several agents can work at once.
 struct Item {
     var id: String            // "<session>#<n>"
@@ -17,7 +16,7 @@ struct Item {
 }
 
 struct ItemState: Codable {
-    var source: String        // instructions or timeline, frozen at first use so ids stay the same
+    var source: String        // "session"; older builds wrote "timeline"
     var items: [String: Entry] = [:]
     struct Entry: Codable { var status: String; var by: String?; var at: Date; var note: String? }
 }
@@ -29,9 +28,8 @@ enum Items {
 
     static func items(in dir: URL, state: ItemState?) -> (source: String, items: [Item]) {
         let id = dir.lastPathComponent
-        let ins = try? String(contentsOf: dir.appendingPathComponent("instructions.md"), encoding: .utf8)
-        let source = state?.source ?? (ins != nil ? "instructions" : "timeline")
-        var out = source == "instructions" && ins != nil ? fromInstructions(ins!, dir: dir) : fromTimeline(dir)
+        let source = "session"
+        var out = sessionItem(dir).map { [$0] } ?? []
         for i in out.indices {
             out[i].id = "\(id)#\(out[i].n)"
             out[i].session = id
@@ -45,95 +43,41 @@ enum Items {
         return (source, out)
     }
 
-    /// "## 3. Title" sections; the summary and App lines above them go with every item as context.
-    static func fromInstructions(_ text: String, dir: URL) -> [Item] {
-        var head: [String] = [], cur: (n: Int, title: String, lines: [String])?, out: [Item] = []
-        func flush() {
-            guard let c = cur else { return }
-            let body = (head + ["", "## \(c.n). \(c.title)"] + c.lines).joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
-            out.append(Item(id: "", session: "", n: c.n, title: c.title, body: body, crops: cropPaths(in: c.lines.joined(separator: "\n"), dir: dir),
-                            status: "open", at: nil))
-        }
-        for line in text.components(separatedBy: "\n") {
-            if line.hasPrefix("---") && cur != nil { break }
-            if line.hasPrefix("## ") {
-                flush(); cur = nil
-                let rest = line.dropFirst(3)
-                if let dot = rest.firstIndex(of: "."), let n = Int(rest[..<dot]) {
-                    cur = (n, rest[rest.index(after: dot)...].trimmingCharacters(in: .whitespaces), [])
-                } else if rest.lowercased().hasPrefix("open questions") {
-                    cur = nil; head.append(""); head.append(line)   // asked of every item
-                }
-            } else if cur != nil {
-                cur!.lines.append(line)
-            } else {
-                head.append(line)
-            }
-        }
-        flush()
-        return out
-    }
-
-    static func cropPaths(in text: String, dir: URL) -> [URL] {
-        let re = try! NSRegularExpression(pattern: "crops/(\\d+)\\.jpg")
-        let ns = text as NSString
-        var seen = Set<String>()
-        return re.matches(in: text, range: NSRange(location: 0, length: ns.length)).compactMap { m in
-            let name = ns.substring(with: m.range)
-            guard seen.insert(name).inserted else { return nil }
-            let u = dir.appendingPathComponent(name)
-            return FileManager.default.fileExists(atPath: u.path) ? u : nil
-        }
-    }
-
-    /// One item per thing pointed at: a click, or a rest of half a second or more (shorter rests are cursor travel). Each
-    /// word belongs to the point the cursor was on when it was said (0.3 s lead); words before the first point join it.
-    /// Points in a row on the same element are one item; a point with no words is dropped.
-    static func fromTimeline(_ dir: URL) -> [Item] {
+    /// The whole recording as one item: everything said, with [n] where the cursor was, and every click or rest of half
+    /// a second or more (shorter rests are cursor travel; repeats on the same element count once).
+    static func sessionItem(_ dir: URL) -> Item? {
         guard let data = try? Data(contentsOf: dir.appendingPathComponent("events.json")),
-              let events = try? JSONDecoder.iso.decode(SessionEvents.self, from: data) else { return [] }
+              let events = try? JSONDecoder.iso.decode(SessionEvents.self, from: data) else { return nil }
         let words = (try? Data(contentsOf: dir.appendingPathComponent("transcript.json")))
             .flatMap { try? JSONDecoder().decode([Word].self, from: $0) } ?? []
-        guard !words.isEmpty else { return [] }
+        guard !words.isEmpty else { return nil }
+        var sents = Builder.sentences(words)
+        _ = Builder.attach(events.points, to: &sents)
+        var lines = ["Said (\(Builder.clock(words[0].start)) to \(Builder.clock(words[words.count - 1].end))): \""
+                     + sents.map { Builder.marked($0, events.points) }.joined(separator: " ") + "\"", "", "Pointed at:"]
+        var crops: [URL] = [], last: String?
+        for idx in sents.flatMap(\.points) {
+            let p = events.points[idx]
+            guard p.kind == "click" || p.end - p.t >= 0.5 else { continue }
+            let key = [p.element?.role, p.element?.title, p.element?.value, p.element?.identifier].map { $0 ?? "" }.joined(separator: "|")
+            if key == last, p.kind != "click" { continue }
+            last = key
+            lines.append(pointLine(p, dir, &crops))
+        }
+        if lines.count == 3 { lines.removeLast(2) }
+        let title = words.prefix(12).map(\.text).joined(separator: " ")
+        return Item(id: "", session: "", n: 1, title: title, body: lines.joined(separator: "\n"), crops: crops, status: "open", at: nil)
+    }
 
-        func key(_ p: PointEvent) -> String {
-            guard let e = p.element else { return "\(Int(p.at.x / 40)),\(Int(p.at.y / 40))" }
-            return [e.role, e.title, e.label, e.value, e.identifier, e.frame.map { "\(Int($0.x)),\(Int($0.y))" }]
-                .map { $0 ?? "" }.joined(separator: "|")
-        }
-        var anchors: [[PointEvent]] = []
-        for p in events.points where p.kind == "click" || p.end - p.t >= 0.5 {
-            if let last = anchors.last?.last, key(last) == key(p) { anchors[anchors.count - 1].append(p) } else { anchors.append([p]) }
-        }
-        var groups: [(points: [PointEvent], words: [Word])] = anchors.map { ($0, []) }
-        if groups.isEmpty { groups = [([], [])] }   // spoken without pointing: one item
-        for w in words {
-            let i = groups.lastIndex { g in (g.points.first?.t ?? 0) - 0.3 <= w.start } ?? 0
-            groups[i].words.append(w)
-        }
-        groups = groups.filter { !$0.words.isEmpty }
-
-        return groups.enumerated().map { i, g in
-            var said = g.words.map(\.text)
-            for p in g.points {   // [n] after the word spoken closest to the point
-                let wi = g.words.enumerated().min { abs($0.element.start - p.t) < abs($1.element.start - p.t) }?.offset ?? 0
-                said[wi] += " [\(p.index + 1)]"
-            }
-            var lines = ["Said at \(Builder.clock(g.words[0].start)): \"\(said.joined(separator: " "))\""]
-            var crops: [URL] = []
-            for p in g.points {
-                var l = "- [\(p.index + 1)] \(p.kind) in \(p.app ?? "?")"
-                if let w = p.window { l += ", window \"\(w)\"" }
-                if let u = p.url { l += ", \(u)" }
-                l += ": \(Builder.describe(p))"
-                if let path = p.element?.path, !path.isEmpty { l += "; inside \(path.suffix(5).joined(separator: " > "))" }
-                let crop = dir.appendingPathComponent(String(format: "crops/%02d.jpg", p.index + 1))
-                if FileManager.default.fileExists(atPath: crop.path) { l += "; crop `\(crop.path)`"; crops.append(crop) }
-                lines.append(l)
-            }
-            let title = g.words.prefix(10).map(\.text).joined(separator: " ")
-            return Item(id: "", session: "", n: i + 1, title: title, body: lines.joined(separator: "\n"), crops: crops, status: "open", at: nil)
-        }
+    static func pointLine(_ p: PointEvent, _ dir: URL, _ crops: inout [URL]) -> String {
+        var l = "- [\(p.index + 1)] \(p.kind) in \(p.app ?? "?")"
+        if let w = p.window { l += ", window \"\(w)\"" }
+        if let u = p.url { l += ", \(u)" }
+        l += ": \(Builder.describe(p))"
+        if let path = p.element?.path, !path.isEmpty { l += "; inside \(path.suffix(5).joined(separator: " > "))" }
+        let crop = dir.appendingPathComponent(String(format: "crops/%02d.jpg", p.index + 1))
+        if FileManager.default.fileExists(atPath: crop.path) { l += "; crop `\(crop.path)`"; crops.append(crop) }
+        return l
     }
 
     // MARK: State
@@ -208,13 +152,6 @@ enum Items {
             }
             return (changed, missing)
         }
-    }
-
-    /// Counts for the window.
-    static func counts(_ dir: URL) -> (open: Int, working: Int, done: Int) {
-        let items = Self.items(in: dir, state: readState(dir)).items
-        return (items.filter { $0.status == "open" }.count, items.filter { $0.status == "in_progress" }.count,
-                items.filter { $0.status == "done" }.count)
     }
 
     /// Every item, oldest first, for an overview.

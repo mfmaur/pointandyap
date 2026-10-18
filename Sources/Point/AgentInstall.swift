@@ -7,6 +7,12 @@ enum AgentInstall {
     static let skill = "/Applications/Point.app/Contents/Resources/skill/point"
     static var home: URL { FileManager.default.homeDirectoryForCurrentUser }
 
+    /// The Claude Code CLI, only to register the MCP with it.
+    static var claudeCLI: URL? {
+        ["\(home.path)/.local/bin/claude", "/opt/homebrew/bin/claude", "/usr/local/bin/claude"]
+            .map(URL.init(fileURLWithPath:)).first { FileManager.default.isExecutableFile(atPath: $0.path) }
+    }
+
     static func run(log: (String) -> Void = { NSLog("point: \($0)") }) {
         guard Bundle.main.bundlePath == "/Applications/Point.app" else { return }
         claudeCode(log); codex(log); cursor(log); skills(log)
@@ -24,7 +30,7 @@ enum AgentInstall {
         let cfg = home.appendingPathComponent(".claude.json")
         if let data = try? Data(contentsOf: cfg), let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
            let servers = json["mcpServers"] as? [String: Any], servers["point"] != nil { return }
-        guard let cli = Claude.cli else { return }
+        guard let cli = claudeCLI else { return }
         if FileManager.default.fileExists(atPath: cfg.path) { backup(cfg) }
         let p = Foundation.Process()
         p.executableURL = cli

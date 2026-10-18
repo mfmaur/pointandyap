@@ -7,11 +7,18 @@ final class DoubleControl {
     private var downAt: Date?
     private var lastTap: Date?
     private let fire: () -> Void
+    private let escape: () -> Void
 
-    init(fire: @escaping () -> Void) {
+    init(fire: @escaping () -> Void, escape: @escaping () -> Void) {
         self.fire = fire
+        self.escape = escape
         let flags: (NSEvent) -> Void = { [weak self] e in MainActor.assumeIsolated { self?.flags(e) } }
-        let other: (NSEvent) -> Void = { [weak self] _ in MainActor.assumeIsolated { self?.reset() } }
+        let other: (NSEvent) -> Void = { [weak self] e in
+            MainActor.assumeIsolated {
+                self?.reset()
+                if e.type == .keyDown, e.keyCode == 53 { self?.escape() }   // Esc
+            }
+        }
         let mask: NSEvent.EventTypeMask = [.keyDown, .leftMouseDown, .rightMouseDown, .scrollWheel]
         if let m = NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged, handler: flags) { monitors.append(m) }
         if let m = NSEvent.addGlobalMonitorForEvents(matching: mask, handler: other) { monitors.append(m) }

@@ -72,11 +72,10 @@ enum MCPServer {
          "description": "List recent Point recordings, newest first: id, time, length, number of points, first words.",
          "inputSchema": ["type": "object", "properties": ["limit": ["type": "integer", "description": "How many, default 10"]]]],
         ["name": "get_session",
-         "description": "One Point recording: the instructions for a coding agent (or the aligned timeline), the folder, and the cropped screenshot of each point as images (red ring = cursor, yellow box = element).",
+         "description": "One Point recording: the aligned timeline (what Marc said, with [n] where he pointed and the element there), the folder, and the cropped screenshot of each point as images (red ring = cursor, yellow box = element).",
          "inputSchema": ["type": "object", "properties": [
             "id": ["type": "string", "description": "Session id from list_sessions, default latest"],
-            "images": ["type": "boolean", "description": "Include the crops as images, default true"],
-            "timeline": ["type": "boolean", "description": "Also include the aligned timeline when instructions exist, default false"]]]],
+            "images": ["type": "boolean", "description": "Include the crops as images, default true"]]]],
         ["name": "get_frame",
          "description": "A full screenshot from a session (frames/NNN.jpg), downscaled, for context beyond a crop.",
          "inputSchema": ["type": "object", "properties": [
@@ -95,7 +94,7 @@ enum MCPServer {
         case "list_items": return listItems(a["status"] as? String)
         case "release_items": return setItems(a["ids"], status: "open", note: a["note"] as? String)
         case "list_sessions": return text(listSessions(limit: a["limit"] as? Int ?? 10))
-        case "get_session": return getSession(a["id"] as? String, images: a["images"] as? Bool ?? true, timeline: a["timeline"] as? Bool ?? false)
+        case "get_session": return getSession(a["id"] as? String, images: a["images"] as? Bool ?? true)
         case "get_frame": return getFrame(a["id"] as? String, frame: a["frame"] as? String)
         default: return error("unknown tool \(name)")
         }
@@ -126,19 +125,20 @@ enum MCPServer {
                let words = try? JSONDecoder().decode([Word].self, from: w), !words.isEmpty {
                 line += ", \"\(words.prefix(12).map(\.text).joined(separator: " "))…\""
             }
-            line += FileManager.default.fileExists(atPath: d.appendingPathComponent("instructions.md").path) ? ", instructions" : ", timeline only"
+            if let i = Items.items(in: d, state: Items.readState(d)).items.first {
+                line += ", \(i.status.replacingOccurrences(of: "_", with: " "))\(i.by.map { " by \($0)" } ?? "")"
+            }
             return line
         }
         return rows.isEmpty ? "No Point sessions yet." : rows.joined(separator: "\n")
     }
 
-    static func getSession(_ id: String?, images: Bool, timeline: Bool) -> [String: Any] {
+    static func getSession(_ id: String?, images: Bool) -> [String: Any] {
         guard let d = dir(id) else { return error("no such session") }
-        let ins = try? String(contentsOf: d.appendingPathComponent("instructions.md"), encoding: .utf8)
         let tl = try? String(contentsOf: d.appendingPathComponent("session.md"), encoding: .utf8)
         var body = "Point session \(d.lastPathComponent), folder \(d.path)\n\n"
-        if let ins { body += ins; if timeline, let tl { body += "\n\n---\n\n" + tl } }
-        else if let tl { body += tl } else { body += "This session has not been processed yet." }
+        body += tl ?? "This session has not been processed yet."
+        body += "\n\nThe work items of this session come from get_open_items; finish each with mark_done."
         var content: [[String: Any]] = [["type": "text", "text": body]]
         if images {
             let crops = ((try? FileManager.default.contentsOfDirectory(atPath: d.appendingPathComponent("crops").path)) ?? [])
@@ -182,9 +182,9 @@ enum MCPServer {
             return text("No open items. \(working.count) in progress (\(who)); nothing else to do.")
         }
         var content: [[String: Any]] = [["type": "text", "text":
-            "\(items.count) open item\(items.count == 1 ? "" : "s")\(take ? ", now in progress by you" : ""). Do each, then mark_done with its id."]]
+            "\(items.count) open item\(items.count == 1 ? "" : "s")\(take ? ", now in progress by you" : ""). Fix each, then call mark_done with its id right away: an item you leave unmarked stays open for Marc and comes back to another agent in two hours."]]
         for i in items {
-            var t = "### Item \(i.id)\n\n\(i.body)"
+            var t = "### Item \(i.id)\n\n\(i.body)\n\nWhen this is fixed, call mark_done with id \"\(i.id)\" (Marc sees it as done)."
             if let note = i.note, !note.isEmpty { t += "\n\nNote from \(i.by ?? "an agent") when it gave this back: \(note)" }
             content.append(["type": "text", "text": t])
             if images {

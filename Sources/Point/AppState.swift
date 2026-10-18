@@ -9,10 +9,9 @@ struct SessionRow: Identifiable, Equatable {
     var duration: Int
     var points: Int
     var title: String
-    var hasInstructions: Bool
-    var open = 0
-    var working = 0
-    var done = 0
+    var status = ""     // open, in_progress, done; empty when nothing was said
+    var by: String?
+    var note: String?
 }
 
 @MainActor
@@ -64,6 +63,17 @@ final class AppState: ObservableObject {
         onRecordingChanged?(true)
     }
 
+    /// Esc while recording: stop and keep nothing.
+    func cancel() {
+        guard case .recording = phase, let r = recorder else { return }
+        recorder = nil
+        r.cancel()
+        phase = .idle
+        onRecordingChanged?(false)
+        NSSound(named: "Pop")?.play()
+        loadSessions()
+    }
+
     /// Double Control: start when idle, stop while recording.
     func toggle() {
         switch phase {
@@ -94,13 +104,11 @@ final class AppState: ObservableObject {
 
     /// Two lines an agent can act on: what is new, and how to get it.
     static func pointer(_ dir: URL) -> String {
-        let items = Items.items(in: dir, state: Items.readState(dir)).items
-        let open = items.filter { $0.status == "open" }
-        var about = ""
-        if let first = open.first ?? items.first { about = ": \"\(first.title)…\"" }
-        let count = open.count == 1 ? "1 thing to fix" : "\(open.count) things to fix"
-        return "New in Point, \(count)\(about)\n"
-            + "Work through them with the point MCP: get_open_items, then mark_done each (session \(dir.lastPathComponent), \(dir.path)/)."
+        let open = Items.all().filter { $0.status == "open" }.count
+        let title = Items.items(in: dir, state: nil).items.first?.title ?? "a recording"
+        return "New in Point: \"\(title)…\"\(open > 1 ? " (\(open) recordings to fix)" : "")\n"
+            + "Fix them all: point MCP get_open_items, then mark_done each when it is fixed. "
+            + "Without the MCP: \(QueueCLI.binary) --items, and --done <id> --note \"what changed\"."
     }
 
     private func copyPointer(_ dir: URL) { copy(Self.pointer(dir)) }
@@ -108,6 +116,15 @@ final class AppState: ObservableObject {
     func copy(_ row: SessionRow) {
         copyPointer(row.dir)
         say("Copied")
+    }
+
+    /// Marc marks a recording done himself, or opens it again.
+    func toggleDone(_ row: SessionRow) {
+        let ids = Items.items(in: row.dir, state: Items.readState(row.dir)).items.map(\.id)
+        guard !ids.isEmpty else { return }
+        _ = Items.set(ids, status: row.status == "done" ? "open" : "done", agent: "Marc", note: nil)
+        loadSessions()
+        say(row.status == "done" ? "Open again" : "Marked done")
     }
 
     func open(_ row: SessionRow) { NSWorkspace.shared.open(row.dir) }
@@ -134,12 +151,11 @@ final class AppState: ObservableObject {
                let words = try? JSONDecoder().decode([Word].self, from: w), !words.isEmpty {
                 title = words.prefix(9).map(\.text).joined(separator: " ")
             } else if phase == .processing {
-                title = "Writing instructions…"
+                title = "Processing…"
             }
-            let c = Items.counts(dir)
+            let item = Items.items(in: dir, state: Items.readState(dir)).items.first
             return SessionRow(dir: dir, date: e.started, duration: Int(e.duration.rounded()), points: e.points.count,
-                              title: title, hasInstructions: fm.fileExists(atPath: dir.appendingPathComponent("instructions.md").path),
-                              open: c.open, working: c.working, done: c.done)
+                              title: title, status: item?.status ?? "", by: item?.by, note: item?.note)
         }
     }
 }

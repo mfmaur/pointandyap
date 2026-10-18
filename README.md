@@ -12,13 +12,10 @@ Each session is kept in `~/Point/sessions/<date_time>/`: `session.md` (the align
 (written by Claude), `crops/` (the screen at each point, red ring = cursor, yellow box = element), `frames/`, `events.json`,
 `transcript.json`, `audio.caf`. Nothing leaves the Mac except the step that writes `instructions.md`.
 
-## Instructions step
+## Fully local
 
-In this order, the first that works:
-1. The Anthropic API (`claude-opus-5-5`) with the key in `~/Library/Application Support/Point/anthropic-key` (0600), about
-   0.03 to 0.10 USD a session.
-2. The local Claude Code CLI (`claude -p`, your subscription), when you are signed in to it in Terminal.
-3. Neither: `session.md` goes on the clipboard instead; it is already readable by an agent.
+Recording, speech-to-text (Apple's on-device model), the timeline, crops, the queue and the MCP all run on this Mac; nothing
+is sent anywhere. Esc while recording cancels it (the session goes to the Trash).
 
 ## Settings
 
@@ -34,7 +31,7 @@ Builds with SwiftPM, signs with the Developer ID in `CODESIGN_IDENTITY` (from th
 hardened runtime, installs `/Applications/Point.app`. Permissions (asked on first launch): Microphone, Screen Recording,
 Accessibility.
 
-Reprocess a session headless: `/Applications/Point.app/Contents/MacOS/Point --process ~/Point/sessions/<dir> [--no-claude]`
+Reprocess a session headless: `/Applications/Point.app/Contents/MacOS/Point --process ~/Point/sessions/<dir>`
 (delete `transcript.json` to transcribe again).
 
 The plan and what comes later: `PLAN.md`.
@@ -42,10 +39,11 @@ The plan and what comes later: `PLAN.md`.
 
 ## For agents: the queue
 
-- Every comment is an item: one per numbered instruction, or (without instructions) one per thing pointed at, with the
-  words said while the cursor rested there. Items are open, in progress (by which agent) or done (`state.json` in the session folder).
+- Each recording is one item: everything said in it, with [n] where the cursor was, and the elements and crops of every
+  click or rest of half a second or more. An agent does all of it, then marks it done. (Splitting by pointing or with
+  Apple's on-device model was tried on real sessions on 17 Oct 2026 and cut single requests into pieces.) Items are open, in progress (by which agent) or done (`state.json` in the session folder).
 - After Stop the clipboard gets two lines ("New in Point, 2 things to fix …" and how to get them). The window shows
-  "N to fix" or "Done" per session and refreshes every 5 s.
+  To fix, In progress (by which agent) or Done per recording, refreshes every 5 s, and hovering a row offers Done or Reopen.
 - `Point --mcp` is a local MCP server over stdio, no auth: `get_open_items` (marks the open items in progress by the calling
   agent, oldest first, with crops), `start_items` (specific ids), `list_items` (every item with its state), `mark_done` (ids, note), `release_items` (ids, note: back to the queue), `list_sessions`,
   `get_session`, `get_frame`. An item in progress that no one finished returns after two hours. One lock (`~/Point/.lock`) keeps
@@ -54,4 +52,6 @@ The plan and what comes later: `PLAN.md`.
   (`~/.codex/config.toml`) and Cursor (`~/.cursor/mcp.json`) when not there yet, and links its skill
   (`Resources/skill/point`) into `~/.claude/skills` and `~/.agents/skills`. Configs are backed up first to
   `~/Library/Application Support/Point/backups/`. An entry named point that is not Point's is left alone.
+- From a shell, for agents without the MCP: `Point --items`, `Point --done <id> --note "what changed"` (`POINT_AGENT`
+  names the agent).
 - Tests against another folder: `POINT_SESSIONS=<dir> Point --mcp`.

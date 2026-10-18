@@ -113,16 +113,19 @@ struct SessionRowView: View {
                     .font(.geist(11)).foregroundStyle(Ink.muted)
             }
             Spacer(minLength: 8)
-            if !hover { StatusPill(open: row.open, working: row.working, done: row.done) }
+            if !hover { StatusPill(status: row.status, by: row.by) }
             if hover {
-                Button { state.open(row) } label: { Image(systemName: "folder") }.buttonStyle(SmallButton())
-                Button("Copy") { state.copy(row) }.buttonStyle(SmallButton(dark: true))
+                Button { state.open(row) } label: { Image(systemName: "folder") }.buttonStyle(SmallButton()).help("Open the folder")
+                if !row.status.isEmpty {
+                    Button(row.status == "done" ? "Reopen" : "Done") { state.toggleDone(row) }.buttonStyle(SmallButton(dark: row.status != "done"))
+                }
             }
         }
         .frame(height: 50)
         .contentShape(Rectangle())
         .onHover { hover = $0 }
         .onTapGesture { state.copy(row) }
+        .help(row.note.map { "Note: \($0)" } ?? "Click to copy it for an agent")
     }
 }
 
@@ -139,6 +142,8 @@ struct PillView: View {
             TimelineView(.periodic(from: .now, by: 1)) { ctx in
                 Text(elapsed(at: ctx.date)).font(.geistMono(13)).foregroundStyle(Ink.primary).frame(width: 40, alignment: .leading)
             }
+            Button(action: state.cancel) { Text("esc").font(.geist(11)).foregroundStyle(Ink.faint) }
+                .buttonStyle(.plain).help("Cancel and keep nothing")
             Button(action: state.stop) { Text("Stop  ") + Text("⌃⌃").font(.system(size: 11)).foregroundColor(Color(hex: 0x9A9DA4)) }.buttonStyle(SmallButton(dark: true))
         }
         .padding(.leading, 14).padding(.trailing, 6)
@@ -155,21 +160,21 @@ struct PillView: View {
     }
 }
 
-/// "2 to fix" (gold), "1 in progress" (grey) or "Done" (green), Rocky's pill colours.
+/// "To fix" (gold), "In progress · claude-code" (grey) or "Done" (green), Rocky's pill colours.
 struct StatusPill: View {
-    let open: Int
-    let working: Int
-    let done: Int
+    let status: String
+    let by: String?
     var body: some View {
-        HStack(spacing: 4) {
-            if working > 0 { pill("\(working) in progress", 0x3A3C41, 0xF3F3F5, 0xE3E4E7) }
-            if open > 0 { pill("\(open) to fix", 0x6B5414, 0xFFF7E0, 0xF3E3B5) }
-            if open == 0 && working == 0 && done > 0 { pill("Done", 0x2F7A4B, 0xF1FAF4, 0xCFE8D8) }
+        switch status {
+        case "open": pill("To fix", 0x6B5414, 0xFFF7E0, 0xF3E3B5)
+        case "in_progress": pill("In progress" + (by.map { " · \($0)" } ?? ""), 0x3A3C41, 0xF3F3F5, 0xE3E4E7)
+        case "done": pill("Done", 0x2F7A4B, 0xF1FAF4, 0xCFE8D8)
+        default: EmptyView()
         }
     }
 
     private func pill(_ t: String, _ text: UInt32, _ bg: UInt32, _ line: UInt32) -> some View {
-        Text(t).font(.geist(11)).foregroundStyle(Color(hex: text))
+        Text(t).font(.geist(11)).foregroundStyle(Color(hex: text)).lineLimit(1)
             .padding(.horizontal, 8).padding(.vertical, 3)
             .background(Capsule().fill(Color(hex: bg)))
             .overlay(Capsule().strokeBorder(Color(hex: line), lineWidth: 1))

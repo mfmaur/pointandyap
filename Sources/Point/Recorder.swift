@@ -110,6 +110,15 @@ final class Recorder {
         return name
     }
 
+    /// Stops and moves the recording to the Trash.
+    func cancel() {
+        timer?.invalidate()
+        audio.stop()
+        // To the Trash, not deleted: a stray Esc can be undone from there. Wait for screenshots still being written.
+        let dir = self.dir
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { try? FileManager.default.trashItem(at: dir, resultingItemURL: nil) }
+    }
+
     /// Stops, waits for pending screenshots and Accessibility reads, writes events.json.
     func stop() async -> URL {
         timer?.invalidate()
