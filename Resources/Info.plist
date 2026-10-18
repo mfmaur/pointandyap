@@ -3,8 +3,8 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleIdentifier</key><string>com.marcmaurer.point</string>
-	<key>CFBundleName</key><string>Point</string>
-	<key>CFBundleDisplayName</key><string>Point</string>
+	<key>CFBundleName</key><string>Point and Yap</string>
+	<key>CFBundleDisplayName</key><string>Point and Yap</string>
 	<key>CFBundleExecutable</key><string>Point</string>
 	<key>CFBundlePackageType</key><string>APPL</string>
 	<key>CFBundleShortVersionString</key><string>0.1.0</string>
@@ -12,7 +12,7 @@
 	<key>LSMinimumSystemVersion</key><string>26.0</string>
 	<key>CFBundleIconFile</key><string>AppIcon</string>
 	<key>NSHighResolutionCapable</key><true/>
-	<key>NSMicrophoneUsageDescription</key><string>Point records what you say while you point at the screen.</string>
-	<key>NSSpeechRecognitionUsageDescription</key><string>Point transcribes your recording on this Mac.</string>
+	<key>NSMicrophoneUsageDescription</key><string>Point and Yap records what you say while you point at the screen.</string>
+	<key>NSSpeechRecognitionUsageDescription</key><string>Point and Yap transcribes your recording on this Mac.</string>
 </dict>
 </plist>

@@ -4,6 +4,7 @@ import Foundation
 /// `Point --mcp`: a local MCP server over stdio (newline-delimited JSON-RPC), no auth. It only reads ~/Point/sessions.
 enum MCPServer {
     static let protocolVersion = "2025-06-18"
+    static let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "dev"
     /// The client's name from initialize, recorded on the items it takes and finishes.
     nonisolated(unsafe) static var agent = "agent"
 
@@ -22,7 +23,7 @@ enum MCPServer {
                 let asked = params["protocolVersion"] as? String
                 reply(id, ["protocolVersion": asked ?? protocolVersion,
                            "capabilities": ["tools": [:]],
-                           "serverInfo": ["name": "point", "version": "0.2.0"],
+                           "serverInfo": ["name": "point", "title": "Point and Yap", "version": version],
                            "instructions": instructions])
             case "ping": reply(id, [:])
             case "tools/list": reply(id, ["tools": tools])
@@ -37,42 +38,42 @@ enum MCPServer {
     }
 
     static let instructions = """
-    Point is Marc's queue of things to fix: he points at things on his screen and comments, and every comment becomes an \
-    item (what he said, the element under the cursor, a cropped screenshot). Work through the queue: get_open_items takes \
+    Point and Yap is the user's queue of things to fix: they point at things on their screen and talk, and every \
+    recording becomes an item (what they said, the elements under the cursor, cropped screenshots). Work through the queue: get_open_items takes \
     the open items for you, do each one, then mark_done with its id and a one-line note; release_items gives back what \
     you could not do. Done items are never handed out again. get_session reads a whole recording.
     """
 
     static let tools: [[String: Any]] = [
         ["name": "get_open_items",
-         "description": "The open items of Marc's Point queue, oldest first, each with its id, what he said, the element he pointed at and its crop (red ring = cursor, yellow box = element). By default they are marked in progress by you, so no other agent gets them; finish each with mark_done.",
+         "description": "The open items of the user's Point and Yap queue, oldest first, each with its id, what they said, the elements they pointed at and its crop (red ring = cursor, yellow box = element). By default they are marked in progress by you, so no other agent gets them; finish each with mark_done.",
          "inputSchema": ["type": "object", "properties": [
             "limit": ["type": "integer", "description": "How many, default 5"],
             "take": ["type": "boolean", "description": "Mark them in progress by you, default true; false only looks"],
             "images": ["type": "boolean", "description": "Include the crops as images, default true"]]]],
         ["name": "mark_done",
-         "description": "Mark Point items done once the change is made, so they are never handed out again.",
+         "description": "Mark items done once the change is made, so they are never handed out again.",
          "inputSchema": ["type": "object", "required": ["ids"], "properties": [
             "ids": ["type": "array", "items": ["type": "string"], "description": "Item ids, e.g. 2026-10-17_164301#2"],
             "note": ["type": "string", "description": "One line: what you changed (file, commit)"]]]],
         ["name": "start_items",
-         "description": "Mark specific open Point items in progress by you (after looking with take false), so no other agent does them. Refuses items done or in progress by another agent.",
+         "description": "Mark specific open items in progress by you (after looking with take false), so no other agent does them. Refuses items done or in progress by another agent.",
          "inputSchema": ["type": "object", "required": ["ids"], "properties": [
             "ids": ["type": "array", "items": ["type": "string"]]]]],
         ["name": "list_items",
-         "description": "Every Point item with its state: open, in progress (by which agent, since when) or done (by whom, with the note). No images.",
+         "description": "Every item with its state: open, in progress (by which agent, since when) or done (by whom, with the note). No images.",
          "inputSchema": ["type": "object", "properties": [
             "status": ["type": "string", "description": "open, in_progress or done; default all except done"]]]],
         ["name": "release_items",
-         "description": "Give Point items you have in progress back to the queue (you could not do them, or they need Marc); they are handed out again.",
+         "description": "Give items you have in progress back to the queue (you could not do them, or they need the user); they are handed out again.",
          "inputSchema": ["type": "object", "required": ["ids"], "properties": [
             "ids": ["type": "array", "items": ["type": "string"]],
-            "note": ["type": "string", "description": "Why, for Marc or the next agent"]]]],
+            "note": ["type": "string", "description": "Why, for the user or the next agent"]]]],
         ["name": "list_sessions",
-         "description": "List recent Point recordings, newest first: id, time, length, number of points, first words.",
+         "description": "List recent recordings, newest first: id, time, length, number of points, first words.",
          "inputSchema": ["type": "object", "properties": ["limit": ["type": "integer", "description": "How many, default 10"]]]],
         ["name": "get_session",
-         "description": "One Point recording: the aligned timeline (what Marc said, with [n] where he pointed and the element there), the folder, and the cropped screenshot of each point as images (red ring = cursor, yellow box = element).",
+         "description": "One recording: the aligned timeline (what the user said, with [n] where they pointed and the element there), the folder, and the cropped screenshot of each point as images (red ring = cursor, yellow box = element).",
          "inputSchema": ["type": "object", "properties": [
             "id": ["type": "string", "description": "Session id from list_sessions, default latest"],
             "images": ["type": "boolean", "description": "Include the crops as images, default true"]]]],
@@ -130,13 +131,13 @@ enum MCPServer {
             }
             return line
         }
-        return rows.isEmpty ? "No Point sessions yet." : rows.joined(separator: "\n")
+        return rows.isEmpty ? "No recordings yet." : rows.joined(separator: "\n")
     }
 
     static func getSession(_ id: String?, images: Bool) -> [String: Any] {
         guard let d = dir(id) else { return error("no such session") }
         let tl = try? String(contentsOf: d.appendingPathComponent("session.md"), encoding: .utf8)
-        var body = "Point session \(d.lastPathComponent), folder \(d.path)\n\n"
+        var body = "Recording \(d.lastPathComponent), folder \(d.path)\n\n"
         body += tl ?? "This session has not been processed yet."
         body += "\n\nThe work items of this session come from get_open_items; finish each with mark_done."
         var content: [[String: Any]] = [["type": "text", "text": body]]
@@ -177,14 +178,14 @@ enum MCPServer {
         let items = Items.openItems(limit: max(1, min(limit, 20)), take: take, agent: agent)
         guard !items.isEmpty else {
             let working = Items.all().filter { $0.status == "in_progress" }
-            if working.isEmpty { return text("No open items. Everything Marc pointed at is done.") }
+            if working.isEmpty { return text("No open items. Everything the user pointed at is done.") }
             let who = Set(working.compactMap(\.by)).sorted().joined(separator: ", ")
             return text("No open items. \(working.count) in progress (\(who)); nothing else to do.")
         }
         var content: [[String: Any]] = [["type": "text", "text":
-            "\(items.count) open item\(items.count == 1 ? "" : "s")\(take ? ", now in progress by you" : ""). Fix each, then call mark_done with its id right away: an item you leave unmarked stays open for Marc and comes back to another agent in two hours."]]
+            "\(items.count) open item\(items.count == 1 ? "" : "s")\(take ? ", now in progress by you" : ""). Fix each, then call mark_done with its id right away: an item you leave unmarked stays open for the user and comes back to another agent in two hours."]]
         for i in items {
-            var t = "### Item \(i.id)\n\n\(i.body)\n\nWhen this is fixed, call mark_done with id \"\(i.id)\" (Marc sees it as done)."
+            var t = "### Item \(i.id)\n\n\(i.body)\n\nWhen this is fixed, call mark_done with id \"\(i.id)\" (the user sees it as done)."
             if let note = i.note, !note.isEmpty { t += "\n\nNote from \(i.by ?? "an agent") when it gave this back: \(note)" }
             content.append(["type": "text", "text": t])
             if images {

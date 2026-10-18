@@ -7,10 +7,11 @@ enum Prefs {
     static var sounds: Bool { flag("sounds") }
     static var doubleControl: Bool { flag("doubleControl") }
     static var escCancels: Bool { flag("escCancels") }
-    static var connectAgents: Bool { flag("connectAgents") }
+    /// Off until the user says yes on the first-run question (or in Settings).
+    static var connectAgents: Bool { flag("connectAgents", default: false) }
 
-    /// Every switch is on until it is turned off.
-    private static func flag(_ k: String) -> Bool { UserDefaults.standard.object(forKey: k) as? Bool ?? true }
+    /// Every other switch is on until it is turned off.
+    private static func flag(_ k: String, default d: Bool = true) -> Bool { UserDefaults.standard.object(forKey: k) as? Bool ?? d }
 
     static let languages: [(id: String, name: String)] = [
         ("", "Same as the Mac"), ("en-US", "English"), ("de-DE", "German"), ("fr-FR", "French"), ("es-ES", "Spanish"),
@@ -23,7 +24,7 @@ struct SettingsView: View {
     @AppStorage("sounds") private var sounds = true
     @AppStorage("doubleControl") private var doubleControl = true
     @AppStorage("escCancels") private var escCancels = true
-    @AppStorage("connectAgents") private var connectAgents = true
+    @AppStorage("connectAgents") private var connectAgents = false
     @AppStorage("locale") private var locale = ""
     @State private var atLogin = SMAppService.mainApp.status == .enabled
     @State private var agents = AgentInstall.status()
@@ -41,7 +42,7 @@ struct SettingsView: View {
             }
             .padding(.bottom, 8)
 
-            section("RECORDING")
+            section("Recording")
             group {
                 toggle("Sounds", "A soft sound at start and when it is copied", $sounds)
                 line
@@ -61,9 +62,9 @@ struct SettingsView: View {
                 }.frame(height: 46)
             }
 
-            section("CODING AGENTS")
+            section("Coding agents")
             group {
-                toggle("Connect automatically", "Adds Point's MCP and skill to the agents on this Mac", $connectAgents)
+                toggle("Connect automatically", "Adds the MCP and skill to your coding agents", $connectAgents)
                 line
                 HStack {
                     Text(agents.isEmpty ? "No agents found" : agents.map { "\($0.name) \($0.on ? "✓" : "–")" }.joined(separator: "   "))
@@ -79,7 +80,7 @@ struct SettingsView: View {
                 }.frame(height: 40)
             }
 
-            section("GENERAL")
+            section("General")
             group {
                 HStack {
                     Text("Open at login").font(.geist(13)).foregroundStyle(Ink.primary)

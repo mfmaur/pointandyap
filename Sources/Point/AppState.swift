@@ -25,6 +25,8 @@ final class AppState: ObservableObject {
     @Published var screen = false
     @Published var ax = false
     @Published var showSettings = false
+    /// The coding agents found on this Mac, while the first-run question is open.
+    @Published var askAgents: [String] = []
 
     private var recorder: Recorder?
     var onRecordingChanged: ((Bool) -> Void)?
@@ -107,7 +109,7 @@ final class AppState: ObservableObject {
     static func pointer(_ dir: URL) -> String {
         let open = Items.all().filter { $0.status == "open" }.count
         let title = Items.items(in: dir, state: nil).items.first?.title ?? "a recording"
-        return "New in Point: \"\(title)…\"\(open > 1 ? " (\(open) recordings to fix)" : "")\n"
+        return "New in Point and Yap: \"\(title)…\"\(open > 1 ? " (\(open) recordings to fix)" : "")\n"
             + "Fix them all: point MCP get_open_items, then mark_done each when it is fixed. "
             + "Without the MCP: \(QueueCLI.binary) --items, and --done <id> --note \"what changed\"."
     }
@@ -119,13 +121,24 @@ final class AppState: ObservableObject {
         say("Copied")
     }
 
-    /// Marc marks a recording done himself, or opens it again.
+    /// The user marks a recording done themself, or opens it again.
     func toggleDone(_ row: SessionRow) {
         let ids = Items.items(in: row.dir, state: Items.readState(row.dir)).items.map(\.id)
         guard !ids.isEmpty else { return }
-        _ = Items.set(ids, status: row.status == "done" ? "open" : "done", agent: "Marc", note: nil)
+        _ = Items.set(ids, status: row.status == "done" ? "open" : "done", agent: "you", note: nil)
         loadSessions()
         say(row.status == "done" ? "Open again" : "Marked done")
+    }
+
+    /// The first-run answer: Connect registers the MCP and skill now and on later launches; Skip touches nothing.
+    func answerAgents(_ yes: Bool) {
+        UserDefaults.standard.set(yes, forKey: "connectAgents")
+        UserDefaults.standard.set(true, forKey: "agentsAsked")
+        askAgents = []
+        if yes {
+            DispatchQueue.global(qos: .userInitiated).async { AgentInstall.run() }
+            say("Connected")
+        }
     }
 
     func open(_ row: SessionRow) { NSWorkspace.shared.open(row.dir) }

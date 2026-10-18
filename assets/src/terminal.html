@@ -1,0 +1,38 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono&display=block" rel="stylesheet">
+<style>
+  html,body { margin:0; background:#fff; }
+  .t { width:400px; height:560px; box-sizing:border-box; background:#17181B; color:#C9CBD0; font-family:"Geist Mono", monospace; font-size:11.5px; line-height:1.6; padding:0; overflow:hidden; -webkit-font-smoothing:antialiased; }
+  .bar { height:30px; display:flex; align-items:center; gap:6px; padding:0 12px; border-bottom:1px solid #2A2C31; }
+  .bar i { width:10px; height:10px; border-radius:50%; background:#3A3C41; display:block; }
+  .body { padding:14px 16px; }
+  .me { color:#fff; }
+  .tool { color:#FFD66B; }
+  .dim { color:#6B6E76; }
+  .ok { color:#7BC79A; }
+  p { margin:0 0 10px; }
+  .ind { display:block; padding-left:14px; }
+</style></head>
+<body><div class="t">
+  <div class="bar"><i></i><i></i><i></i></div>
+  <div class="body">
+    <p class="me">&gt; work through Point</p>
+    <p><span class="tool">● point · get_open_items</span><br>
+      <span class="ind dim">2 open items, now in progress by you</span></p>
+    <p class="ind">#1 “Make this list sort by date, newest first”<br>
+      <span class="dim">[1] list “Invoices” in Billing.app</span></p>
+    <p class="ind">#2 “This button should be blue, not grey”<br>
+      <span class="dim">[1] button “Save” · crop 01.jpg</span></p>
+    <p>Sorting invoices by date in InvoiceList.swift…<br>
+      <span class="ok">+ .sorted { $0.date &gt; $1.date }</span></p>
+    <p><span class="tool">● point · mark_done</span> <span class="dim">#1</span><br>
+      <span class="ind dim">Done: sorted by date, InvoiceList.swift</span></p>
+    <p>Save button to the accent colour in Toolbar.swift…<br>
+      <span class="ok">+ .tint(.accentColor)</span></p>
+    <p><span class="tool">● point · mark_done</span> <span class="dim">#2</span><br>
+      <span class="ind dim">Done: Save is blue, Toolbar.swift</span></p>
+    <p><span class="tool">● point · get_open_items</span><br>
+      <span class="ind dim">No open items.</span></p>
+  </div>
+</div></body></html>

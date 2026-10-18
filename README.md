@@ -1,65 +1,124 @@
-# Point
+<p align="center">
+  <img src="assets/readme-banner.webp" alt="Point and Yap. Show, don't type." width="100%" />
+</p>
 
-Talk about what is on screen while you point with the cursor; get instructions a coding agent can act on.
+<p align="center" style="margin-bottom: 8px;">
+  <a href="https://pointandyap.com" title="Visit pointandyap.com"><img src="https://img.shields.io/badge/website-pointandyap.com-24292f?style=flat" alt="Visit pointandyap.com" /></a>
+  &nbsp;
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-24292f?style=flat&amp;logo=github&amp;logoColor=white" alt="MIT License" /></a>
+  &nbsp;
+  <a href="#install"><img src="https://img.shields.io/badge/macOS-26_%C2%B7_Apple_silicon-24292f?style=flat&amp;logo=apple&amp;logoColor=white" alt="macOS 26, Apple silicon" /></a>
+  &nbsp;
+  <a href="#mcp-tools"><img src="https://img.shields.io/badge/MCP-Claude_Code_%2F_Codex_%2F_Cursor-24292f?style=flat" alt="MCP for Claude Code, Codex and Cursor" /></a>
+  &nbsp;
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/changelog-view-24292f?style=flat" alt="Changelog" /></a>
+</p>
 
-1. Open Point and press Start recording. The window steps aside and a small pill with the time and Stop stays on top
-   (it is never in the screenshots, and clicks on it are not points).
+<p align="center">
+  <img src="site/public/media/loop.gif" alt="Press Control twice, point at a button and say what is wrong; the coding agent fixes it and marks it done" width="100%" />
+</p>
+
+**Point and Yap** is a small Mac app for showing your coding agent what to change. Press Control twice, talk while you
+point at things on screen, press Control twice again. Each recording becomes an item in a local queue, with what you said,
+the element under the cursor and a cropped screenshot. Claude Code, Codex or Cursor pick it up over MCP, fix it and mark it
+done.
+
+<p align="center"><sub><a href="#install">Install</a> · <a href="#how-it-works">How it works</a> · <a href="#mcp-tools">MCP tools</a> · <a href="#faq">FAQ</a> · <a href="#license">License</a></sub></p>
+
+<table>
+  <tr>
+    <td width="50%"><img src="assets/window.webp" alt="The window: Start recording and the recent recordings with their state" /></td>
+    <td width="50%"><img src="assets/pill.webp" alt="The recording pill: time, esc and Stop" /></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="assets/settings.webp" alt="Settings: sounds, Control twice, Esc, speech language, coding agents" /></td>
+    <td width="50%"><img src="assets/agent.webp" alt="An agent terminal calling get_open_items and mark_done" /></td>
+  </tr>
+</table>
+
+## Install
+
+1. Download `PointAndYap.dmg` from [pointandyap.com](https://pointandyap.com) or the
+   [latest release](https://github.com/mfmaur/pointandyap/releases/latest). It is signed and notarized by Apple.
+2. Drag Point and Yap into Applications and open it.
+3. Allow the three permissions it asks for.
+4. It lists the coding agents it found and asks before connecting them. Connect, or Skip and do it later in Settings.
+
+Needs macOS 26 on Apple silicon.
+
+### Permissions, and why
+
+- **Microphone**: records what you say while you point.
+- **Screen Recording**: takes the screenshots at each point and click. The recording pill is never in them.
+- **Accessibility**: reads the element under the cursor (role, label, window, app), so an agent can find it in code.
+
+## How it works
+
+1. Press Control twice (or Start recording). A small pill with the time and Stop stays on top.
 2. Talk and point: rest the cursor on the thing you mean while you say "this", "here", "that one". Clicks count too.
-3. Press Stop. A few seconds later a sound plays and the instructions are on the clipboard. Paste them into Claude Code.
-   Recent sessions are listed in the window: click one to copy it again, the folder button opens it.
+3. Press Control twice again. A soft sound plays and two lines go on the clipboard for any agent: what is new and how to get it.
+4. The agent calls `get_open_items`, makes the change and calls `mark_done`. The window shows To fix, In progress (by
+   which agent) or Done for each recording.
 
-Each session is kept in `~/Point/sessions/<date_time>/`: `session.md` (the aligned timeline, no model), `instructions.md`
-(written by Claude), `crops/` (the screen at each point, red ring = cursor, yellow box = element), `frames/`, `events.json`,
-`transcript.json`, `audio.caf`. Nothing leaves the Mac except the step that writes `instructions.md`.
+Esc while recording cancels it and moves it to the Trash.
 
-## Fully local
+### Everything stays on your Mac
 
-Recording, speech-to-text (Apple's on-device model), the timeline, crops, the queue and the MCP all run on this Mac; nothing
-is sent anywhere. Esc while recording cancels it (the session goes to the Trash).
+Speech is transcribed by Apple's on-device model. Recordings, screenshots, the queue and the MCP server all live on your
+Mac, in `~/Point/sessions`. No account, no server, no analytics. The only download is Apple's speech model, which macOS
+fetches once.
 
-## Settings
+## MCP tools
 
-- Language of the speech model: `defaults write com.marcmaurer.point locale en-US` (or `de-DE`, ...). Default: the system's.
+`/Applications/Point.app/Contents/MacOS/Point --mcp` is a local MCP server over stdio, named `point`. After you say
+Connect, it is added to Claude Code (user scope), Codex (`~/.codex/config.toml`) and Cursor (`~/.cursor/mcp.json`), and a
+skill is linked into `~/.claude/skills` and `~/.agents/skills`. Each config is backed up first to
+`~/Library/Application Support/Point/backups/`. An existing entry named `point` that is not ours is left alone.
 
-## Build
+| Tool | What it does |
+| --- | --- |
+| `get_open_items` | The open items, oldest first, with what was said, the elements and the crops. Marks them in progress by the calling agent. |
+| `start_items` | Marks specific open items in progress by you. |
+| `list_items` | Every item with its state: open, in progress (by whom, since when) or done (with the note). |
+| `mark_done` | Marks items done with a one-line note. Done items are never handed out again. |
+| `release_items` | Gives items back to the queue, with a note why. |
+| `list_sessions`, `get_session`, `get_frame` | The recordings themselves: the aligned timeline, crops and full screenshots. |
+
+An item in progress that no one finishes goes back to the queue after two hours. One file lock keeps two agents from taking
+the same item.
+
+### Shell fallback
+
+For an agent without MCP:
 
 ```bash
-bash scripts/build.sh
+/Applications/Point.app/Contents/MacOS/Point --items
 ```
 
-Builds with SwiftPM, signs with the Developer ID in `CODESIGN_IDENTITY` (from the workspace `.env`, or `POINT_ENV=<file>`),
-hardened runtime, installs `/Applications/Point.app`. Permissions (asked on first launch): Microphone, Screen Recording,
-Accessibility.
+```bash
+POINT_AGENT=my-agent /Applications/Point.app/Contents/MacOS/Point --done <id> --note "what changed"
+```
 
-Reprocess a session headless: `/Applications/Point.app/Contents/MacOS/Point --process ~/Point/sessions/<dir>`
-(delete `transcript.json` to transcribe again).
+## FAQ
 
-The plan and what comes later: `PLAN.md`.
-- Design check without a screen: `Point --render-ui <dir>` (window, permissions, rows, pill as PNGs).
+**Does anything leave my Mac?** No. See [Everything stays on your Mac](#everything-stays-on-your-mac).
 
-## For agents: the queue
+**Which agents work?** Claude Code, Codex and Cursor are connected for you. Any MCP client that runs a local stdio server
+works with the command above, and any agent with a shell can use `--items` and `--done`.
 
-- Each recording is one item: everything said in it, with [n] where the cursor was, and the elements and crops of every
-  click or rest of half a second or more. An agent does all of it, then marks it done. (Splitting by pointing or with
-  Apple's on-device model was tried on real sessions on 17 Oct 2026 and cut single requests into pieces.) Items are open, in progress (by which agent) or done (`state.json` in the session folder).
-- After Stop the clipboard gets two lines ("New in Point, 2 things to fix …" and how to get them). The window shows
-  To fix, In progress (by which agent) or Done per recording, refreshes every 5 s, and hovering a row offers Done or Reopen.
-- `Point --mcp` is a local MCP server over stdio, no auth: `get_open_items` (marks the open items in progress by the calling
-  agent, oldest first, with crops), `start_items` (specific ids), `list_items` (every item with its state), `mark_done` (ids, note), `release_items` (ids, note: back to the queue), `list_sessions`,
-  `get_session`, `get_frame`. An item in progress that no one finished returns after two hours. One lock (`~/Point/.lock`) keeps
-  agents in separate processes from taking the same item.
-- On launch from /Applications, Point registers the MCP with Claude Code (`claude mcp add --scope user`), Codex
-  (`~/.codex/config.toml`) and Cursor (`~/.cursor/mcp.json`) when not there yet, and links its skill
-  (`Resources/skill/point`) into `~/.claude/skills` and `~/.agents/skills`. Configs are backed up first to
-  `~/Library/Application Support/Point/backups/`. An entry named point that is not Point's is left alone.
-- From a shell, for agents without the MCP: `Point --items`, `Point --done <id> --note "what changed"` (`POINT_AGENT`
-  names the agent).
-- Tests against another folder: `POINT_SESSIONS=<dir> Point --mcp`.
+**I skipped connecting. How do I connect later?** Settings, Coding agents, Connect now.
 
-## The site
+**How do I remove it?** Quit it and delete it from Applications. To remove the agent entries: `claude mcp remove point
+--scope user`, the `[mcp_servers.point]` table in `~/.codex/config.toml`, `point` in `~/.cursor/mcp.json`, and the `point`
+links in `~/.claude/skills` and `~/.agents/skills`. Recordings are in `~/Point`.
 
-`site/`: pointandyap.com, a Cloudflare Worker with static assets in Marc's personal Cloudflare account. `/api/stats`
-reads stars and the DMG release downloads from GitHub (10 min cache); the Download button turns on when a release has a
-DMG. Deploy: `cd site && npx wrangler@4 deploy` with the workspace `.env` loaded (and `CLOUDFLARE_ACCOUNT_ID` unset). The
-domains are attached as Worker custom domains through the API, not in `wrangler.toml`. It sends `x-robots-tag: noindex`
-until launch (two lines in `worker.js`). Local preview: launch config `pointandyap-site`, port 4261.
+**Why macOS 26?** It uses SpeechAnalyzer, Apple's on-device speech model with word timings, to line up each word with
+where the cursor was.
+
+**Can I build it myself?** Yes: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
+
+## License
+
+[MIT](LICENSE). Provided as is, without warranty of any kind.
+
+Something this helps me build. Maybe it helps you too.

@@ -13,8 +13,24 @@ enum AgentInstall {
             .map(URL.init(fileURLWithPath:)).first { FileManager.default.isExecutableFile(atPath: $0.path) }
     }
 
+    static var installed: Bool { Bundle.main.bundlePath == "/Applications/Point.app" }
+
+    /// Whether to show the first-run question. A Mac where Point is already registered with an agent, or where the
+    /// switch was set before the question existed, counts as answered, with what it already has.
+    static func needsAsking() -> Bool {
+        let d = UserDefaults.standard
+        if d.bool(forKey: "agentsAsked") { return false }
+        let found = status()
+        if d.object(forKey: "connectAgents") != nil || found.contains(where: \.on) {
+            if d.object(forKey: "connectAgents") == nil { d.set(true, forKey: "connectAgents") }
+            d.set(true, forKey: "agentsAsked")
+            return false
+        }
+        return !found.isEmpty
+    }
+
     static func run(force: Bool = false, log: (String) -> Void = { NSLog("point: \($0)") }) {
-        guard Bundle.main.bundlePath == "/Applications/Point.app", force || Prefs.connectAgents else { return }
+        guard installed, force || Prefs.connectAgents else { return }
         claudeCode(log); codex(log); cursor(log); skills(log)
     }
 
