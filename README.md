@@ -55,3 +55,11 @@ The plan and what comes later: `PLAN.md`.
 - From a shell, for agents without the MCP: `Point --items`, `Point --done <id> --note "what changed"` (`POINT_AGENT`
   names the agent).
 - Tests against another folder: `POINT_SESSIONS=<dir> Point --mcp`.
+
+## The site
+
+`site/`: pointandyap.com, a Cloudflare Worker with static assets in Marc's personal Cloudflare account. `/api/stats`
+reads stars and the DMG release downloads from GitHub (10 min cache); the Download button turns on when a release has a
+DMG. Deploy: `cd site && npx wrangler@4 deploy` with the workspace `.env` loaded (and `CLOUDFLARE_ACCOUNT_ID` unset). The
+domains are attached as Worker custom domains through the API, not in `wrangler.toml`. It sends `x-robots-tag: noindex`
+until launch (two lines in `worker.js`). Local preview: launch config `pointandyap-site`, port 4261.

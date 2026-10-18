@@ -29,22 +29,23 @@ var worker_default = {
     if (url.hostname === "www.pointandyap.com") return Response.redirect(`https://pointandyap.com${url.pathname}`, 301);
     if (url.pathname === "/api/stats") {
       const cache = caches.default, key = new Request("https://pointandyap.com/api/stats");
-      let res = await cache.match(key);
-      if (!res) {
+      let res2 = await cache.match(key);
+      if (!res2) {
         let body;
         try {
           body = await stats();
         } catch {
           body = { stars: 0, downloads: 0, version: null, download: null };
         }
-        res = new Response(JSON.stringify(body), {
+        res2 = new Response(JSON.stringify(body), {
           headers: { "content-type": "application/json", "cache-control": "public, max-age=600" }
         });
-        ctx.waitUntil(cache.put(key, res.clone()));
+        ctx.waitUntil(cache.put(key, res2.clone()));
       }
-      return res;
+      return res2;
     }
-    return env.ASSETS.fetch(request);
+    const res = await env.ASSETS.fetch(request);
+    return new Response(res.body, { status: res.status, headers: { ...Object.fromEntries(res.headers), "x-robots-tag": "noindex" } });
   }
 };
 
@@ -95,7 +96,7 @@ var jsonError = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx)
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
 
-// .wrangler/tmp/bundle-F9UOrP/middleware-insertion-facade.js
+// .wrangler/tmp/bundle-F7O5kT/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
@@ -127,7 +128,7 @@ function __facade_invoke__(request, env, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// .wrangler/tmp/bundle-F9UOrP/middleware-loader.entry.ts
+// .wrangler/tmp/bundle-F7O5kT/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;

@@ -35,6 +35,8 @@ export default {
       }
       return res;
     }
-    return env.ASSETS.fetch(request);
+    // Not in search results until launch (remove these two lines then).
+    const res = await env.ASSETS.fetch(request);
+    return new Response(res.body, { status: res.status, headers: { ...Object.fromEntries(res.headers), "x-robots-tag": "noindex" } });
   },
 };
