@@ -34,6 +34,10 @@ struct MainView: View {
                 .padding(.bottom, 16)
             }
 
+            if state.showWelcome && state.allowed && state.phase == .idle {
+                WelcomeCard(state: state).padding(.bottom, 16)
+            }
+
             Button(action: state.start) {
                 HStack(spacing: 8) {
                     if state.phase == .processing {
@@ -49,8 +53,15 @@ struct MainView: View {
             .disabled(state.phase != .idle || !state.allowed)
             .opacity(state.allowed ? 1 : 0.4)
 
-            Text("Or press Control twice. Rest the cursor on what you mean.")
-                .font(.geist(12)).foregroundStyle(Ink.faint).padding(.top, 10)
+            HStack(spacing: 4) {
+                Text(state.showWelcome ? "Or press Control twice. Rest the cursor on what you mean." : "Or press Control twice.")
+                    .font(.geist(12)).foregroundStyle(Ink.faint)
+                if !state.showWelcome {
+                    Button("How it works") { state.showWelcome = true }
+                        .buttonStyle(.plain).font(.geist(12)).foregroundStyle(Ink.muted).underline()
+                }
+            }
+            .padding(.top, 10)
 
             Text("Recent").font(.geist(11, .medium)).foregroundStyle(Ink.faint).tracking(0.6)
                 .padding(.top, 26).padding(.bottom, 6)

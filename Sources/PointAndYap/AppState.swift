@@ -25,6 +25,13 @@ final class AppState: ObservableObject {
     @Published var screen = false
     @Published var ax = false
     @Published var showSettings = false
+    /// The how-it-works card: until Got it once, and whenever How it works is pressed.
+    @Published var showWelcome = !UserDefaults.standard.bool(forKey: "welcomeSeen")
+
+    func dismissWelcome() {
+        UserDefaults.standard.set(true, forKey: "welcomeSeen")
+        showWelcome = false
+    }
     /// A new version downloaded and ready to install (Updater).
     @Published var updateReady: String?
     /// The coding agents found on this Mac, while the first-run question is open.

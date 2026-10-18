@@ -4,7 +4,9 @@ import SwiftUI
 /// Draws the window and the pill offscreen, with example rows, for a design check.
 @MainActor
 enum RenderUI {
+    nonisolated(unsafe) static var active = false
     static func run(to dir: URL) {
+        active = true
         _ = NSApplication.shared
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         let s = AppState()
@@ -15,8 +17,12 @@ enum RenderUI {
         ]
         s.mic = true; s.screen = true; s.ax = true
         s.updateReady = "0.1.3"
+        s.showWelcome = false
         write(MainView(state: s), "window.png", dir)
         s.updateReady = nil
+        s.showWelcome = true
+        write(MainView(state: s), "welcome.png", dir)
+        s.showWelcome = false
         write(VStack(spacing: 0) { ForEach(s.sessions) { SessionRowView(row: $0, state: s); Divider() } }.frame(width: 352).padding(24).background(Color.white), "rows.png", dir)
         let n = AppState(); n.mic = true
         write(MainView(state: n), "window-access.png", dir)

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.3
+
+- A short loop of how it works above Start recording, once the permissions are allowed, until Got it; How it works
+  brings it back.
+
 ## 0.1.2
 
 - Updates itself: checks pointandyap.com every few hours, downloads a new version in the background (Sparkle, signed

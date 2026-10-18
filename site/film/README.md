@@ -51,3 +51,10 @@ The loop is drawn from a 7 s source; its last second is blended over its first, 
 
 Edit the timings in `renderFull` / `renderLoop` and the terminal lines in `TERM_FULL` / `TERM_LOOP`. Copy rules: no em
 dashes, sentence case.
+
+## The first-run loop
+
+`welcome.html` is the 9 s loop the app shows above Start recording (352 x 220 pt). `node welcome.mjs` renders it at 2x
+into `Resources/Welcome/welcome.mp4` (the app plays it) and `welcome.gif` (a preview); `node welcome.mjs stills 3.6`
+writes single frames to `out/`. The poster `Resources/Welcome/welcome-poster.png` is the frame at 3.6 s.
+

@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Point and Yap welcome</title>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500&family=Geist+Mono:wght@400;500&display=block" rel="stylesheet">
+<style>
+  /* The first-run loop: one 352 x 220 pt frame (rendered at 2x), drawn from t alone so every frame can be rebuilt.
+     Control twice, point and say it, Control twice, copied, the agent turns it Done. Example data only. */
+  :root { --ink:#17181B; --ink2:#3A3C41; --muted:#6B6E76; --faint:#9A9DA4; --line:#E6E7EA; --field:#F6F6F7; --gold:#FFD66B; }
+  * { box-sizing:border-box; margin:0; }
+  html, body { background:#fff; overflow:hidden; -webkit-font-smoothing:antialiased; }
+  body { font-family:Geist, system-ui, sans-serif; color:var(--ink); }
+  .frame { position:absolute; left:0; top:0; width:352px; height:220px; background:var(--field); border-radius:12px; overflow:hidden; transform-origin:0 0; }
+
+  .app { position:absolute; left:18px; top:30px; width:206px; height:120px; background:#fff; border:1px solid var(--line); border-radius:9px; box-shadow:0 8px 22px rgba(23,24,27,.07); }
+  .bar { height:20px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:4px; padding:0 8px; }
+  .bar i { width:6px; height:6px; border-radius:50%; background:var(--line); display:block; }
+  .bar span { margin-left:6px; font-size:8px; color:var(--muted); }
+  .content { padding:12px 14px; }
+  .content h3 { font-weight:500; font-size:12px; }
+  .row { margin-top:12px; display:flex; align-items:center; justify-content:space-between; font-size:9px; color:var(--ink2); }
+  .save { border-radius:6px; padding:5px 12px; color:#fff; font-size:9px; font-weight:500; }
+
+  .queue { position:absolute; left:236px; top:30px; width:100px; height:120px; background:#fff; border:1px solid var(--line); border-radius:9px; padding:8px 9px; box-shadow:0 8px 22px rgba(23,24,27,.07); }
+  .queue .h { font-size:8px; font-weight:500; color:var(--muted); }
+  .item { margin-top:8px; }
+  .item .t { font-size:8.5px; color:var(--ink); line-height:1.25; }
+  .badge { margin-top:5px; display:inline-block; border-radius:999px; padding:2px 7px; font-size:7.5px; border:1px solid; white-space:nowrap; }
+
+  .pill { position:absolute; left:50%; top:6px; display:flex; align-items:center; gap:6px; background:#fff; border:1px solid var(--line); border-radius:8px; padding:3px 3px 3px 8px; font-size:8px; box-shadow:0 4px 12px rgba(23,24,27,.09); white-space:nowrap; }
+  .pill .dot { width:5px; height:5px; border-radius:50%; background:#E5484D; }
+  .pill .tm { font-family:"Geist Mono", monospace; width:20px; }
+  .pill .stop { background:var(--ink); color:#fff; border-radius:5px; padding:2px 6px; }
+  .toast { position:absolute; left:50%; top:6px; background:var(--ink); color:#fff; border-radius:999px; padding:4px 10px; font-size:8px; white-space:nowrap; }
+
+  .said { position:absolute; left:18px; top:160px; width:206px; font-size:10px; color:var(--ink); }
+  .said b { display:block; font-weight:500; font-size:7.5px; color:var(--faint); margin-bottom:2px; }
+
+  .keys { position:absolute; left:236px; top:160px; display:flex; gap:5px; }
+  .key { width:46px; height:30px; background:#fff; border:1px solid var(--line); border-radius:6px; box-shadow:0 2px 0 #E1E2E6; font-size:7.5px; color:var(--ink2); padding:3px 5px; display:flex; flex-direction:column; justify-content:space-between; }
+  .key .sym, .glyph { font-family:-apple-system, "SF Pro Text", system-ui; }
+  .key .sym { font-size:10px; line-height:1; text-align:right; }
+  .hint { position:absolute; left:236px; top:197px; font-size:7.5px; color:var(--faint); }
+
+  .cursor { position:absolute; width:16px; height:16px; margin:-2px 0 0 -3px; }
+  .ring { position:absolute; width:22px; height:22px; margin:-11px 0 0 -11px; border:1.6px solid var(--gold); border-radius:50%; }
+</style>
+</head>
+<body>
+<div class="frame" id="frame">
+  <div class="app">
+    <div class="bar"><i></i><i></i><i></i><span>Acme</span></div>
+    <div class="content">
+      <h3>Settings</h3>
+      <div class="row"><span>Profile</span><span class="save" id="save">Save</span></div>
+      <div class="row"><span>Last sync</span><span id="sync">3 days ago</span></div>
+    </div>
+  </div>
+  <div class="queue">
+    <div class="h">Point and Yap</div>
+    <div class="item" id="item"><div class="t">This button should be blue</div><span class="badge" id="badge">To fix</span></div>
+  </div>
+  <div class="pill" id="pill"><span class="dot"></span><span class="tm" id="tm">0:00</span><span class="stop">Stop <span class="glyph">⌃⌃</span></span></div>
+  <div class="toast" id="toast">Copied · 1 thing to fix</div>
+  <div class="said" id="said"><b>You say</b><span id="words"></span></div>
+  <div class="keys"><div class="key" id="k1"><span class="sym">⌃</span>control</div><div class="key" id="k2"><span class="sym">⌃</span>control</div></div>
+  <div class="hint" id="hint">twice to start, twice to stop</div>
+  <div class="ring" id="ring"></div>
+  <svg class="cursor" id="cursor" viewBox="0 0 22 22"><path d="M3 2l14 8.2-6.1 1.4-2.9 5.9z" fill="#17181B" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"/></svg>
+</div>
+<script>
+const $ = id => document.getElementById(id);
+const DURATION = 9;
+const clamp = v => Math.max(0, Math.min(1, v));
+const prog = (t, a, b) => clamp((t - a) / (b - a));
+const ease = p => p < .5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
+const lerp = (a, b, p) => a + (b - a) * p;
+// 0 to 1 around [a, b]: fade in over f before a, out over f after b.
+const window_ = (t, a, b, f = .25) => Math.min(prog(t, a - f, a), 1 - prog(t, b, b + f));
+function show(el, o, dy = 0) {
+  el.style.opacity = o.toFixed(3);
+  el.style.transform = (el.dataset.base || '') + ' translateY(' + ((1 - o) * dy).toFixed(2) + 'px)';
+  el.style.visibility = o <= .001 ? 'hidden' : 'visible';
+}
+const PATH = [[0, 300, 120], [1.6, 300, 120], [2.5, 186, 103], [5.4, 186, 103], [6.2, 300, 128], [9, 300, 128]];
+function cursorAt(t) {
+  let [t0, x0, y0] = PATH[0];
+  for (const [t1, x1, y1] of PATH.slice(1)) {
+    if (t < t1) { const p = ease(prog(t, t0, t1)); return [lerp(x0, x1, p), lerp(y0, y1, p)]; }
+    [t0, x0, y0] = [t1, x1, y1];
+  }
+  return [x0, y0];
+}
+// A key press: down for 0.12 s at each time in `at`.
+const pressed = (t, at) => at.some(a => t >= a && t < a + .12);
+const SAID = 'This button should be blue.';
+$('pill').dataset.base = 'translateX(-50%)';
+$('toast').dataset.base = 'translateX(-50%)';
+
+function render(t) {
+  // Control twice at 0.8 to start, at 4.9 to stop.
+  for (const k of ['k1', 'k2']) {
+    const down = pressed(t, k === 'k1' ? [.8, 4.9] : [1.05, 5.15]);
+    $(k).style.transform = down ? 'translateY(2px)' : 'none';
+    $(k).style.boxShadow = down ? '0 0 0 #E1E2E6' : '0 2px 0 #E1E2E6';
+    $(k).style.background = down ? '#FFF7E0' : '#fff';
+  }
+  show($('pill'), window_(t, 1.3, 5.2, .2), -8);
+  $('tm').textContent = '0:0' + Math.max(0, Math.min(9, Math.floor((t - 1.3) * 1.4)));
+  show($('toast'), window_(t, 5.5, 6.6, .2), -8);
+
+  const [x, y] = cursorAt(t);
+  $('cursor').style.left = x + 'px'; $('cursor').style.top = y + 'px';
+  $('ring').style.left = x + 'px'; $('ring').style.top = y + 'px';
+  const ring = window_(t, 2.6, 5.3, .2);
+  $('ring').style.opacity = ring; $('ring').style.transform = 'scale(' + (.6 + .4 * ring) + ')';
+
+  const n = Math.round(SAID.length * prog(t, 2.8, 4.3));
+  $('words').textContent = SAID.slice(0, n);
+  show($('said'), window_(t, 2.8, 5.3, .2), 4);
+
+  // The queue: the item comes in, an agent takes it, then it is done and the button is blue.
+  show($('item'), window_(t, 5.7, 8.5, .3), 6);
+  const b = $('badge');
+  const state = t < 6.9 ? 0 : t < 7.7 ? 1 : 2;
+  b.textContent = ['To fix', 'In progress · Claude', 'Done'][state];
+  b.style.color = ['#6B5414', '#3A3C41', '#2F7A4B'][state];
+  b.style.background = ['#FFF7E0', '#F3F3F5', '#F1FAF4'][state];
+  b.style.borderColor = ['#F3E3B5', '#E3E4E7', '#CFE8D8'][state];
+  const fixed = prog(t, 7.6, 7.9) * (1 - prog(t, 8.6, 8.9));
+  $('save').style.background = `rgb(${lerp(185, 47, fixed)}, ${lerp(187, 111, fixed)}, ${lerp(192, 235, fixed)})`;
+  $('hint').style.opacity = 1;
+}
+
+function fit() {
+  const s = Math.min(innerWidth / 352, innerHeight / 220);
+  $('frame').style.transform = 'scale(' + s + ')';
+}
+window.render = render; window.DURATION = DURATION;
+const params = new URLSearchParams(location.search);
+window.ready = document.fonts.ready.then(() => { render(+(params.get('t') || 0)); });
+if (!params.has('capture')) {
+  fit(); addEventListener('resize', fit);
+  const start = performance.now();
+  if (!params.has('t')) (function loop() { render(((performance.now() - start) / 1000) % DURATION); requestAnimationFrame(loop); })();
+}
+</script>
+</body>
+</html>
