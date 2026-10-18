@@ -1,0 +1,15 @@
+name = "pointandyap"
+main = "worker.js"
+compatibility_date = "2026-09-01"
+account_id = "c0d4f5623f4ed222585b3ff7782789ec"
+workers_dev = false
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+run_worker_first = true
+
+routes = [
+  { pattern = "pointandyap.com", custom_domain = true },
+  { pattern = "www.pointandyap.com", custom_domain = true },
+]
