@@ -79,6 +79,12 @@ domains are attached as Worker custom domains through the API, not in `wrangler.
    the update key: `POINTANDYAP_SPARKLE_KEY=<private key file>`, else the login Keychain, account `pointandyap`),
    commits it, and updates the Homebrew cask. Installed copies pick the version up within a few hours.
 
+Automatic: merge a pull request that renames `## Unreleased` in `CHANGELOG.md` to the new version (`## 0.1.5`).
+`scripts/auto-release.sh`, run every 15 minutes by a LaunchAgent on the maintainer's Mac
+(`com.marcmaurer.pointandyap-release`, its own clone and log in `~/Library/Application Support/PointAndYap-release/`),
+sees a changelog version newer than the latest release and runs both steps above, with a notification at the start and
+the end. Other merges release nothing. `bash scripts/auto-release.sh --dry-run` says what it would do.
+
 The update key's public half is `SUPublicEDKey` in `Resources/Info.plist`; keep the private half out of the repo and backed
 up. Losing it means installed copies can no longer be updated. To test an update locally, serve a feed and set
 `defaults write com.marcmaurer.pointandyap updateFeedURL <url>` (the download must still be signed); delete it after.

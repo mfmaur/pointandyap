@@ -26,5 +26,7 @@ The tests run against a synthetic recording in a temporary folder and never touc
 - Keep it local: no network calls, analytics or accounts. Everything a recording holds stays on the user's Mac.
 - Never commit a real recording. Use example data in tests and screenshots.
 - UI text: short, sentence case, no em dashes.
+- Add a line for user-visible changes under `## Unreleased` in `CHANGELOG.md`. Renaming that heading to a version
+  (`## 0.1.5`) releases it to everyone once merged, so leave that to the maintainer.
 
 By contributing you agree that your contribution is licensed under the MIT licence of this project.
