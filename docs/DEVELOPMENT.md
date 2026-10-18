@@ -69,5 +69,4 @@ The plan and what comes later: `PLAN.md`.
 `site/`: pointandyap.com, a Cloudflare Worker with static assets in the maintainer's Cloudflare account. `/api/stats`
 reads stars and the DMG release downloads from GitHub (10 min cache); the Download button turns on when a release has a
 DMG. Deploy: `cd site && npx wrangler@4 deploy` with the workspace `.env` loaded (and `CLOUDFLARE_ACCOUNT_ID` unset). The
-domains are attached as Worker custom domains through the API, not in `wrangler.toml`. It sends `x-robots-tag: noindex`
-until launch (two lines in `worker.js`). Local preview: launch config `pointandyap-site`, port 4261.
+domains are attached as Worker custom domains through the API, not in `wrangler.toml`. until launch (two lines in `worker.js`). Local preview: launch config `pointandyap-site`, port 4261.

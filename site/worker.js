@@ -8,8 +8,11 @@ async function stats() {
     fetch(`https://api.github.com/repos/${REPO}`, { headers: h }),
     fetch(`https://api.github.com/repos/${REPO}/releases?per_page=100`, { headers: h }),
   ]);
-  if (repo.ok) out.stars = (await repo.json()).stargazers_count ?? 0;
-  if (releases.ok) {
+  // GitHub allows 60 requests an hour per address without a login, shared with every site on the same Cloudflare
+  // address: a refusal throws, so the last good numbers are shown instead of zeros.
+  if (!repo.ok || !releases.ok) throw new Error(`github ${repo.status}/${releases.status}`);
+  out.stars = (await repo.json()).stargazers_count ?? 0;
+  {
     const list = (await releases.json()).filter((r) => !r.draft && !r.prerelease);
     for (const r of list) for (const a of r.assets ?? []) if (a.name.endsWith(".dmg")) out.downloads += a.download_count;
     const dmg = list[0]?.assets?.find((a) => a.name.endsWith(".dmg"));
@@ -18,16 +21,39 @@ async function stats() {
   return out;
 }
 
+// The same numbers from shields.io (it reads GitHub with its own login and caches), for when GitHub refuses us.
+async function shields() {
+  const get = (path) => fetch(`https://img.shields.io/${path}.json`, { headers: { "User-Agent": "pointandyap.com" } })
+    .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`shields ${r.status}`))));
+  const num = (v) => {
+    const m = /^([\d.]+)([kM]?)$/.exec(String(v ?? "").trim());
+    return m ? Math.round(+m[1] * (m[2] === "k" ? 1e3 : m[2] === "M" ? 1e6 : 1)) : 0;
+  };
+  const [st, dl, rel] = await Promise.all([
+    get(`github/stars/${REPO}`), get(`github/downloads/${REPO}/total`), get(`github/v/release/${REPO}`),
+  ]);
+  const version = /^v?(\d[\w.-]*)$/.exec(rel.value ?? "")?.[1] ?? null;
+  return { stars: num(st.value), downloads: num(dl.value), version,
+    download: version ? `https://github.com/${REPO}/releases/latest/download/PointAndYap.dmg` : null };
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     if (url.hostname === "www.pointandyap.com") return Response.redirect(`https://pointandyap.com${url.pathname}`, 301);
     if (url.pathname === "/api/stats") {
-      const cache = caches.default, key = new Request("https://pointandyap.com/api/stats");
+      const cache = caches.default, key = new Request("https://pointandyap.com/api/stats?v=launch4");
       let res = await cache.match(key);
       if (!res) {
+        const lastKey = new Request("https://pointandyap.com/api/stats-last-good");
         let body;
-        try { body = await stats(); } catch { body = { stars: 0, downloads: 0, version: null, download: null }; }
+        try {
+          body = await stats().catch(() => shields());
+          ctx.waitUntil(cache.put(lastKey, new Response(JSON.stringify(body), { headers: { "cache-control": "public, max-age=2592000" } })));
+        } catch {
+          const last = await cache.match(lastKey);
+          body = last ? await last.json() : { stars: 0, downloads: 0, version: null, download: null };
+        }
         res = new Response(JSON.stringify(body), {
           headers: { "content-type": "application/json", "cache-control": "public, max-age=600" },
         });
@@ -38,8 +64,7 @@ export default {
     // Media is asked for whole and sliced below (the assets binding does not answer ranges reliably).
     const media = url.pathname.startsWith("/media/");
     const res = await env.ASSETS.fetch(media ? new Request(url, { headers: { accept: request.headers.get("accept") ?? "*/*" } }) : request);
-    // Not in search results until launch (remove the noindex header then).
-    const headers = { ...Object.fromEntries(res.headers), "x-robots-tag": "noindex" };
+    const headers = Object.fromEntries(res.headers);
     // Safari plays a video only when it answers byte ranges; the assets binding sends the whole file, so slice it here.
     const range = /^bytes=(\d+)-(\d*)$/.exec(request.headers.get("range") ?? "");
     if (media && res.status === 200) {
