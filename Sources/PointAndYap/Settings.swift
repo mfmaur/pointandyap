@@ -93,6 +93,12 @@ struct SettingsView: View {
                 }.frame(height: 40)
                 line
                 HStack {
+                    Text("Version \(Updater.shared.version)").font(.geist(13)).foregroundStyle(Ink.primary)
+                    Spacer()
+                    Button("Check for updates") { Updater.shared.checkNow() }.buttonStyle(SmallButton())
+                }.frame(height: 40)
+                line
+                HStack {
                     Text("Recordings").font(.geist(13)).foregroundStyle(Ink.primary)
                     Spacer()
                     Button("Show in Finder") { NSWorkspace.shared.open(Paths.root) }.buttonStyle(SmallButton())
@@ -101,7 +107,7 @@ struct SettingsView: View {
             Spacer(minLength: 0)
         }
         .padding(24)
-        .frame(width: 400, height: 560, alignment: .topLeading)
+        .frame(width: 400, height: 590, alignment: .topLeading)
         .background(Color.white)
     }
 

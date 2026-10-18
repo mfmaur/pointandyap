@@ -14,7 +14,9 @@ enum RenderUI {
             SessionRow(dir: dir.appendingPathComponent("b"), date: Date().addingTimeInterval(-3600), duration: 12, points: 2, title: "The date is wrong, it should say today", status: "done", by: "you"),
         ]
         s.mic = true; s.screen = true; s.ax = true
+        s.updateReady = "0.1.3"
         write(MainView(state: s), "window.png", dir)
+        s.updateReady = nil
         write(VStack(spacing: 0) { ForEach(s.sessions) { SessionRowView(row: $0, state: s); Divider() } }.frame(width: 352).padding(24).background(Color.white), "rows.png", dir)
         let n = AppState(); n.mic = true
         write(MainView(state: n), "window-access.png", dir)

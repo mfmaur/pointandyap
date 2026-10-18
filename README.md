@@ -131,6 +131,10 @@ works with the command above, and any agent with a shell can use `--items` and `
 --scope user`, the `[mcp_servers.pointandyap]` table in `~/.codex/config.toml`, `pointandyap` in `~/.cursor/mcp.json`, and the `point-and-yap`
 links in `~/.claude/skills` and `~/.agents/skills`. Recordings are in `~/PointAndYap`.
 
+**How do updates work?** From 0.1.2 on, the app checks pointandyap.com every few hours, downloads a new version in the
+background (signed, checked before it is installed) and installs it when you quit; the window shows it with a Restart
+button. Settings has Check for updates.
+
 **Does it work on older Macs or Intel?** Not yet. Only speech-to-text needs macOS 26 (SpeechAnalyzer, Apple's on-device
 model with word timings, which lines up each word with where the cursor was). Wider support is planned.
 

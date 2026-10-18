@@ -72,3 +72,15 @@ The plan and what comes later: `PLAN.md`.
 reads stars and the DMG release downloads from GitHub (10 min cache); the Download button turns on when a release has a
 DMG. Deploy: `cd site && npx wrangler@4 deploy` with the workspace `.env` loaded (and `CLOUDFLARE_ACCOUNT_ID` unset). The
 domains are attached as Worker custom domains through the API, not in `wrangler.toml`. until launch (two lines in `worker.js`). Local preview: launch config `pointandyap-site`, port 4261.
+
+## Releasing
+
+1. `bash scripts/release.sh <version>`: builds, notarizes, makes the DMG and a draft GitHub release.
+2. `bash scripts/publish.sh <version>`: publishes the release, writes and deploys `site/public/appcast.xml` (signed with
+   the update key: `POINTANDYAP_SPARKLE_KEY=<private key file>`, else the login Keychain, account `pointandyap`),
+   commits it, and updates the Homebrew cask. Installed copies pick the version up within a few hours.
+
+The update key's public half is `SUPublicEDKey` in `Resources/Info.plist`; keep the private half out of the repo and backed
+up. Losing it means installed copies can no longer be updated. To test an update locally, serve a feed and set
+`defaults write com.marcmaurer.pointandyap updateFeedURL <url>` (the download must still be signed); delete it after.
+

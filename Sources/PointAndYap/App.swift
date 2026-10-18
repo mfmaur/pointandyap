@@ -52,7 +52,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     func applicationDidFinishLaunching(_ note: Notification) {
         NSApp.mainMenu = makeMenu()
-        window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 400, height: 560),
+        window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 400, height: 590),
                           styleMask: [.titled, .closable, .miniaturizable, .fullSizeContentView], backing: .buffered, defer: false)
         window.titlebarAppearsTransparent = true
         window.titleVisibility = .hidden
@@ -99,6 +99,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         doubleControl = DoubleControl(fire: { [weak self] in if Prefs.doubleControl { self?.state.toggle() } },
                                       escape: { [weak self] in if Prefs.escCancels { self?.state.cancel() } })
         state.loadSessions()
+        Updater.shared.start(state: state)
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
     }
@@ -134,6 +135,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         return CGRect(x: f.minX, y: h - f.maxY, width: f.width, height: f.height)
     }
 
+    @objc private func checkForUpdates() { Updater.shared.checkNow() }
+
+    /// ⌘Q and the menu's Quit: the user's choice, so no reopen.
+    @objc private func quitByUser() {
+        Relaunch.cancel()
+        NSApp.terminate(nil)
+    }
+
     @objc private func openSettings() {
         state.showSettings = true
         window.makeKeyAndOrderFront(nil)
@@ -144,13 +153,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let main = NSMenu()
         let appItem = NSMenuItem(); main.addItem(appItem)
         let appMenu = NSMenu()
+        let updates = NSMenuItem(title: "Check for Updates…", action: #selector(checkForUpdates), keyEquivalent: "")
+        updates.target = self
+        appMenu.addItem(updates)
         let settings = NSMenuItem(title: "Settings…", action: #selector(openSettings), keyEquivalent: ",")
         settings.target = self
         appMenu.addItem(settings)
         appMenu.addItem(.separator())
         appMenu.addItem(NSMenuItem(title: "Hide Point and Yap", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h"))
         appMenu.addItem(.separator())
-        appMenu.addItem(NSMenuItem(title: "Quit Point and Yap", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+        let quit = NSMenuItem(title: "Quit Point and Yap", action: #selector(quitByUser), keyEquivalent: "q")
+        quit.target = self
+        appMenu.addItem(quit)
         appItem.submenu = appMenu
         let editItem = NSMenuItem(); main.addItem(editItem)
         let edit = NSMenu(title: "Edit")

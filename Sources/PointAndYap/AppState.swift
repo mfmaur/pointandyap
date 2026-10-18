@@ -25,6 +25,8 @@ final class AppState: ObservableObject {
     @Published var screen = false
     @Published var ax = false
     @Published var showSettings = false
+    /// A new version downloaded and ready to install (Updater).
+    @Published var updateReady: String?
     /// The coding agents found on this Mac, while the first-run question is open.
     @Published var askAgents: [String] = []
 
@@ -43,10 +45,11 @@ final class AppState: ObservableObject {
 
     func askMic() { Task { _ = await AudioRecorder.askForAccess(); refreshAccess() } }
     func askScreen() {
+        Relaunch.armForGrant()
         if !CGRequestScreenCaptureAccess() { openSettings("Privacy_ScreenCapture") }
         refreshAccess()
     }
-    func askAX() { AXProbe.askForTrust(); openSettings("Privacy_Accessibility") }
+    func askAX() { Relaunch.armForGrant(); AXProbe.askForTrust(); openSettings("Privacy_Accessibility") }
 
     private func openSettings(_ pane: String) {
         if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?\(pane)") { NSWorkspace.shared.open(url) }
@@ -147,6 +150,8 @@ final class AppState: ObservableObject {
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(text, forType: .string)
     }
+
+    func showToast(_ s: String) { say(s) }
 
     private func say(_ s: String) {
         toast = s

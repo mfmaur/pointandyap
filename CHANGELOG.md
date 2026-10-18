@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.2
+
+- Updates itself: checks pointandyap.com every few hours, downloads a new version in the background (Sparkle, signed
+  with its own key) and installs it when you quit; the window shows it with a Restart button. From this version on.
+- Records from the Mac's built-in microphone when the default input is Bluetooth: AirPods no longer switch into call
+  mode while you record, and the done sound is no longer cut off.
+- After allowing Screen Recording or Accessibility, macOS's Quit & Reopen now really reopens the app.
+
 ## 0.1.1
 
 - The app is now "Point and Yap" everywhere: `/Applications/Point and Yap.app`, the MCP server `pointandyap`, the skill

@@ -24,6 +24,16 @@ cp Resources/AppIcon.icns "$APP/Contents/Resources/"
 cp Resources/Fonts/* "$APP/Contents/Resources/Fonts/"
 cp -R Resources/skill "$APP/Contents/Resources/"
 cp -R Resources/Sounds "$APP/Contents/Resources/"
+# Sparkle (updates), signed from the inside out as its documentation asks for apps built outside Xcode.
+mkdir -p "$APP/Contents/Frameworks"
+ditto .build/release/Sparkle.framework "$APP/Contents/Frameworks/Sparkle.framework"
+F="$APP/Contents/Frameworks/Sparkle.framework/Versions/B"
+sign() { codesign --force --options runtime --timestamp --sign "$CODESIGN_IDENTITY" "$@"; }
+sign "$F/XPCServices/Installer.xpc"
+sign --preserve-metadata=entitlements "$F/XPCServices/Downloader.xpc"
+sign "$F/Autoupdate"
+sign "$F/Updater.app"
+sign "$APP/Contents/Frameworks/Sparkle.framework"
 codesign --force --options runtime --timestamp --entitlements Resources/PointAndYap.entitlements \
   --sign "$CODESIGN_IDENTITY" "$APP"
 codesign --verify --strict --verbose=2 "$APP"

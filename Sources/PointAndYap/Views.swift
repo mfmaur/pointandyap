@@ -22,6 +22,18 @@ struct MainView: View {
 
             if !state.allowed { AccessRows(state: state).padding(.bottom, 16) }
 
+            if let v = state.updateReady {
+                HStack {
+                    Circle().fill(Ink.gold).frame(width: 7, height: 7)
+                    Text("Point and Yap \(v) is ready").font(.geist(13)).foregroundStyle(Ink.primary)
+                    Spacer()
+                    Button("Restart") { Updater.shared.restart() }.buttonStyle(SmallButton(dark: true))
+                }
+                .padding(.horizontal, 12).frame(height: 44)
+                .background(RoundedRectangle(cornerRadius: 10).fill(Ink.field))
+                .padding(.bottom, 16)
+            }
+
             Button(action: state.start) {
                 HStack(spacing: 8) {
                     if state.phase == .processing {
@@ -58,7 +70,7 @@ struct MainView: View {
             }
         }
         .padding(24)
-        .frame(width: 400, height: 560, alignment: .topLeading)
+        .frame(width: 400, height: 590, alignment: .topLeading)
         .background(Color.white)
         .overlay(alignment: .bottom) {
             if let t = state.toast {
@@ -111,7 +123,7 @@ struct AgentsQuestion: View {
             Spacer(minLength: 0)
         }
         .padding(24)
-        .frame(width: 400, height: 560, alignment: .topLeading)
+        .frame(width: 400, height: 590, alignment: .topLeading)
         .background(Color.white)
     }
 }

@@ -14,5 +14,11 @@
 	<key>NSHighResolutionCapable</key><true/>
 	<key>NSMicrophoneUsageDescription</key><string>Point and Yap records what you say while you point at the screen.</string>
 	<key>NSSpeechRecognitionUsageDescription</key><string>Point and Yap transcribes your recording on this Mac.</string>
+	<key>SUFeedURL</key><string>https://pointandyap.com/appcast.xml</string>
+	<key>SUPublicEDKey</key><string>u1k6gKkt9cFInYWqd9Le2kfdRP2gw+RaB7hPwz4rFds=</string>
+	<key>SUEnableAutomaticChecks</key><true/>
+	<key>SUAutomaticallyUpdate</key><true/>
+	<key>SUScheduledCheckInterval</key><integer>14400</integer>
+	<key>SUVerifyUpdateBeforeExtraction</key><true/>
 </dict>
 </plist>
