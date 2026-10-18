@@ -60,3 +60,10 @@ Also a 6 s loop for X and the README GIF.
 - Ship a second small tool the same way in a few weeks; a series ("tools I build for myself") compounds.
 - Not: bought stars or followers, vote rings, asking friends to upvote on HN (it is detected and flags the post), fake
   numbers. Each costs exactly the credibility the launch is for.
+
+## Later: older Macs (Marc, 17 Oct 2026: macOS 26 and Apple silicon only for the launch)
+
+Only speech-to-text needs macOS 26 (SpeechAnalyzer); everything else runs on macOS 14 (ScreenCaptureKit stills,
+SMAppService, SwiftUI). To widen: SFSpeechRecognizer on device as the fallback below 26 (word times from its segments),
+`platforms: [.macOS(.v14)]` and LSMinimumSystemVersion 14.0, a universal build (`--arch arm64 --arch x86_64`), CI on
+macos-14, macos-15 and macos-26, and the installer's and the cask's checks relaxed to match.
