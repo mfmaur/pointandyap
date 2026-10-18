@@ -36,6 +36,7 @@
   h1 em { font-style:italic; }
   .sub { margin:22px auto 0; max-width:440px; color:var(--muted); font-size:18px; }
   .cta { margin-top:30px; display:inline-flex; align-items:center; gap:10px; background:var(--ink); color:#fff; text-decoration:none; border-radius:10px; padding:13px 22px; font-weight:500; font-size:15px; }
+  .cta .apple { width:16px; height:16px; margin-top:-2px; }
   .cta[aria-disabled="true"] { background:var(--field); color:var(--muted); border:1px solid var(--line); cursor:default; }
   .small { margin-top:12px; font-size:13px; color:var(--faint); }
 
@@ -103,15 +104,15 @@
     <a class="brand" href="/"><img src="/icon-160.png" alt="">Point and Yap</a>
     <div class="navlinks">
       <a class="hide" href="#how">How it works</a>
-      <a class="star" id="starlink" href="https://github.com/mfmaur/pointandyap">★ <span data-stat="stars">0</span></a>
+      <a class="star" id="starlink" href="https://github.com/mfmaur/pointandyap">★ GitHub</a>
     </div>
   </nav>
 
   <header>
     <h1>Show,<br><em>don’t type.</em></h1>
     <p class="sub">Talk and point at your screen. Your coding agent gets the to-do list.</p>
-    <a class="cta" id="download" href="#" aria-disabled="true"> Download for Mac</a>
-    <p class="small" id="dlnote">Coming soon · free and open source · macOS 26, Apple silicon</p>
+    <a class="cta" id="download" href="#" aria-disabled="true"><svg class="apple" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/></svg>Download for Mac</a>
+    <p class="small" id="dlnote">Free and open source</p>
   </header>
 
   <video class="film" id="film" autoplay muted loop playsinline preload="auto" poster="/media/point-and-yap-poster.jpg" aria-label="Point and Yap in action"><source src="/media/point-and-yap.mp4" type="video/mp4"></video>
@@ -143,16 +144,16 @@
 
   <section>
     <div class="facts">
-      <span>Runs on your Mac</span><span>Speech-to-text on device</span><span>The element under the cursor, not just pixels</span><span>A to-do queue over MCP</span><span>No account</span>
+      <span>Runs on your Mac</span><span>Speech-to-text on device</span><span>No account</span>
     </div>
   </section>
 
   <section>
     <div class="note">
-      <h2>Built while building my company.</h2>
-      <p>I made Point and Yap because it helps me build. Maybe it helps you too. It is free and open source; I share the tools I make and what I learn along the way.</p>
+      <h2>Built while building something new.</h2>
+      <p>I made Point and Yap because it helps me build. Maybe it helps you too. It is free and open source.</p>
       <div class="stats">
-        <a href="https://github.com/mfmaur/pointandyap">★ <b data-stat="stars">0</b> stars on GitHub</a>
+        <a href="https://github.com/mfmaur/pointandyap">★ Star on GitHub</a>
       </div>
     </div>
   </section>
@@ -164,13 +165,11 @@
 </div>
 
 <script>
-// Real numbers from GitHub (through /api/stats, cached by the site's Worker).
+// The latest DMG from GitHub (through /api/stats, cached by the site's Worker).
 fetch('/api/stats').then(r => r.json()).then(s => {
-  document.querySelectorAll('[data-stat="stars"]').forEach(e => e.textContent = s.stars.toLocaleString('en-US'));
   if (s.download) {
     const a = document.getElementById('download');
     a.href = s.download; a.removeAttribute('aria-disabled');
-    document.getElementById('dlnote').textContent = 'Version ' + s.version + ' · free and open source · macOS 26, Apple silicon';
   }
 }).catch(() => {});
 
