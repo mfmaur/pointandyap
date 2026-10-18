@@ -76,3 +76,16 @@ struct SmallButton: ButtonStyle {
             .contentShape(Rectangle())
     }
 }
+
+/// Start and done sounds: macOS's Tink and Glass with everything above 1.5 kHz cut (Resources/Sounds).
+@MainActor
+enum Sounds {
+    private static var cache: [String: NSSound] = [:]
+    static func play(_ name: String) {
+        if cache[name] == nil, let url = Bundle.main.url(forResource: name, withExtension: "caf", subdirectory: "Sounds") {
+            cache[name] = NSSound(contentsOf: url, byReference: true)
+        }
+        cache[name]?.stop()
+        cache[name]?.play()
+    }
+}

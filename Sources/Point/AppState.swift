@@ -60,7 +60,7 @@ final class AppState: ObservableObject {
         }
         recorder = r
         phase = .recording(Date())
-        NSSound(named: "Tink")?.play()
+        Sounds.play("start")
         onRecordingChanged?(true)
     }
 
@@ -84,7 +84,7 @@ final class AppState: ObservableObject {
             // The short pointer goes on the clipboard as soon as the timeline exists; the MCP and the folder fill in after.
             _ = await Process.run(dir: dir, onTimeline: { [weak self] in
                 self?.copyPointer(dir)
-                NSSound(named: "Glass")?.play()
+                Sounds.play("done")
                 self?.say("Copied. Paste it into your agent")
             })
             phase = .idle
