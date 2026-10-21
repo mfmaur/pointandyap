@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.5
+
+- The installer no longer contains a folder path from the Mac it was built on. Nothing changes in the app.
+
 ## 0.1.4
 
 - Recent hides recordings without speech; Settings, Show recordings without speech brings them back.
