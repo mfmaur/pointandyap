@@ -34,7 +34,7 @@ xcrun stapler staple "$APP"
 # The disk image: the app, a link to Applications, the background and the window layout (scripts/dmg).
 DMG=build/PointAndYap.dmg
 STAGE=build/dmg
-MNT=build/dmg-mount
+MNT="/Volumes/Point and Yap"
 rm -rf "$STAGE" "$DMG" build/dmg-rw.dmg build/dmg-bg
 mkdir -p "$STAGE/.background"
 cp -R "$APP" "$STAGE/"
@@ -43,11 +43,12 @@ swift scripts/dmg/background.swift build/dmg-bg
 tiffutil -cathidpicheck build/dmg-bg/background.png build/dmg-bg/background@2x.png -out "$STAGE/.background/background.tiff"
 cp Resources/AppIcon.icns "$STAGE/.VolumeIcon.icns"
 [ -x build/dmg-tools/bin/python ] || { python3 -m venv build/dmg-tools && build/dmg-tools/bin/pip install -q ds-store==1.3.1 mac-alias==2.2.2; }
-# The volume name must be free while building, or the layout's alias names the wrong volume.
-[ ! -e "/Volumes/Point and Yap" ] || { echo "eject the mounted Point and Yap volume first" >&2; exit 1; }
+# Mounted where a user's Mac mounts it: the layout's alias records the mount point, so a mount inside the clone would
+# ship this Mac's folder path. The volume name must be free while building, or the alias names the wrong volume.
+[ ! -e "$MNT" ] || { echo "eject the mounted Point and Yap volume first" >&2; exit 1; }
 hdiutil create -volname "Point and Yap" -srcfolder "$STAGE" -ov -fs HFS+ -format UDRW -quiet build/dmg-rw.dmg
-mkdir -p "$MNT"
-hdiutil attach build/dmg-rw.dmg -readwrite -noverify -noautoopen -nobrowse -mountpoint "$MNT" -quiet
+hdiutil attach build/dmg-rw.dmg -readwrite -noverify -noautoopen -nobrowse -quiet
+[ -d "$MNT" ] || { echo "the image did not mount at $MNT" >&2; exit 1; }
 build/dmg-tools/bin/python -I scripts/dmg/layout.py "$MNT" "Point and Yap.app"
 SetFile -a C "$MNT"
 SetFile -a V "$MNT/.background" "$MNT/.VolumeIcon.icns" "$MNT/.DS_Store"
