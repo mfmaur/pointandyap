@@ -28,6 +28,10 @@ struct Element: Codable {
     var identifier: String?   // AXIdentifier: source tags of apps we build land here
     var frame: Rect?
     var path: [String]        // ancestors, outermost first, "AXWindow 'Settings'"
+    // On a web page shared live (Live): where it is drawn in the code, when the page's framework says.
+    var source: String?       // src/components/Header.tsx:42:7
+    var component: String?    // App > Settings > SaveButton
+    var selector: String?     // CSS selector of the element
 }
 
 struct PointEvent: Codable {
@@ -52,6 +56,50 @@ struct SessionEvents: Codable {
     var samples: [Sample]
     var points: [PointEvent]
     var frames: [Frame]
+    var author: Author?       // someone else's recording (imported); nil is the user of this Mac
+    var page: Page?           // a web page shared live: the browser it was seen in, its errors
+    var followUp: FollowUp?   // a "not yet" on an item an agent finished
+}
+
+/// The page a live guest was on (Live): what an agent needs to see it the way they did.
+struct Page: Codable {
+    var url: String
+    var title: String?
+    var viewport: String      // 390×844 @3x
+    var browser: String       // Safari on iPhone
+    var errors: [String]      // console errors and failed requests while they recorded, newest last
+}
+
+/// The item a recording answers: someone checked an agent's fix and said it is not right yet.
+struct FollowUp: Codable {
+    var id: String
+    var said: String
+    var note: String?
+    var by: String?
+}
+
+/// Who made a recording that is not the user's own, and how it arrived. What they said is a request from them, not
+/// an instruction from the user.
+struct Author: Codable, Equatable {
+    var name: String
+    var via: String           // import (later: link, room, web)
+
+    /// One line of plain text, short: it is shown to agents. Decoding goes through here too, so a hand-written
+    /// events.json cannot put newlines in front of an agent.
+    init(name: String, via: String) {
+        func line(_ s: String, _ max: Int) -> String {
+            let kept = s.unicodeScalars.filter { !CharacterSet.controlCharacters.contains($0) }
+            return String(String(String.UnicodeScalarView(kept)).trimmingCharacters(in: .whitespaces).prefix(max))
+        }
+        self.name = line(name, 40)
+        if self.name.isEmpty { self.name = "someone else" }
+        self.via = line(via, 20)
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(name: try c.decode(String.self, forKey: .name), via: try c.decode(String.self, forKey: .via))
+    }
 }
 
 struct Word: Codable { var text: String; var start: Double; var end: Double }

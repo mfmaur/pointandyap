@@ -26,6 +26,11 @@ final class Recorder {
 
     /// The app's own UI (the pill), in global top-left points: nothing there is a point.
     var ignore: (() -> CGRect?)?
+    /// True while a drag draws an area: the mouse is ours then, not a click or a rest.
+    var drawing: (() -> Bool)?
+
+    private var dropped: Set<Int> = []   // taken back: left out when it stops
+    private var areas: Set<Int> = []
 
     init() { dir = Paths.newSession() }
 
@@ -53,6 +58,7 @@ final class Recorder {
         let down = NSEvent.pressedMouseButtons != 0
         samples.append(Sample(t: round3(t), x: round1(p.x), y: round1(p.y), down: down))
 
+        if drawing?() == true { wasDown = down; anchor = p; anchorT = t; restEmitted = true; return }
         if down && !wasDown { addPoint(kind: "click", at: p, t: t) }
         wasDown = down
 
@@ -83,6 +89,60 @@ final class Recorder {
                 MainActor.assumeIsolated {
                     guard index < self.points.count else { return }
                     self.points[index].element = el
+                    self.points[index].window = window
+                    self.points[index].url = url
+                }
+            }
+        }
+    }
+
+    // MARK: Marks
+
+    /// What has been pointed at so far, numbered as the request will name it: a click or a rest of half a second, one per
+    /// element (or area).
+    struct Mark { var key: String; var frame: CGRect; var area: Bool }
+    var marks: [Mark] {
+        var out: [Mark] = []
+        let t = now
+        for p in points where !dropped.contains(p.index) {
+            let end = p.end == p.t && p.kind == "dwell" ? t : p.end
+            guard p.kind == "click" || end - p.t >= 0.5, let k = key(p), let f = p.element?.frame?.cg, !out.contains(where: { $0.key == k }) else { continue }
+            out.append(Mark(key: k, frame: f, area: areas.contains(p.index)))
+        }
+        return out
+    }
+
+    private func key(_ p: PointEvent) -> String? {
+        if areas.contains(p.index) { return "area \(p.index)" }
+        guard let e = p.element, let f = e.frame else { return nil }
+        return "\(e.role ?? "") \(Int(f.x)) \(Int(f.y)) \(Int(f.w)) \(Int(f.h))"
+    }
+
+    /// Takes back the n-th mark: every point on that element (or that area) is left out.
+    func takeBack(_ n: Int) {
+        let all = marks
+        guard n >= 1, n <= all.count else { return }
+        let k = all[n - 1].key
+        for p in points where key(p) == k { dropped.insert(p.index) }
+        restEmitted = true   // resting there a moment longer does not put it straight back
+    }
+
+    /// A dragged area (global top-left): pointed at like a click, framed as the area.
+    func addArea(_ r: CGRect) {
+        let index = points.count, t = now
+        let app = NSWorkspace.shared.frontmostApplication
+        let c = CGPoint(x: r.midX, y: r.midY)
+        let frame = takeFrame(reason: "click", at: c)
+        areas.insert(index)
+        points.append(PointEvent(index: index, t: round3(t), end: round3(t), at: Pt(x: round1(c.x), y: round1(c.y)),
+                                 kind: "click", app: app?.localizedName, bundleID: app?.bundleIdentifier, window: nil, url: nil,
+                                 element: Element(role: "area", frame: Rect(r), path: []), frame: frame))
+        DispatchQueue.global(qos: .userInitiated).async {
+            let (el, window, url) = AXProbe.element(around: r)
+            DispatchQueue.main.async {
+                MainActor.assumeIsolated {
+                    guard index < self.points.count else { return }
+                    if let el { self.points[index].element = el }
                     self.points[index].window = window
                     self.points[index].url = url
                 }
@@ -127,6 +187,10 @@ final class Recorder {
         for _ in 0..<40 where pendingFrames > 0 { try? await Task.sleep(nanoseconds: 50_000_000) }
         try? await Task.sleep(nanoseconds: 300_000_000)
         if let i = points.lastIndex(where: { $0.kind == "dwell" }), points[i].end == points[i].t { points[i].end = round3(duration) }
+        if !dropped.isEmpty {
+            points = points.filter { !dropped.contains($0.index) }
+            for i in points.indices { points[i].index = i }
+        }
         let known = Set(frames.map(\.file))
         for i in points.indices where points[i].frame.map({ !known.contains($0) }) ?? false { points[i].frame = nil }
         let events = SessionEvents(started: t0, duration: round3(duration), samples: samples, points: points,

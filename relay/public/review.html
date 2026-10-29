@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Point and Yap · Review</title>
+<link rel="stylesheet" href="/review.css">
+<script type="module" src="/review.js"></script>
+</head>
+<body>
+<header class="bar">
+  <span class="brand"><span class="mark"></span>Point and Yap</span>
+  <span class="lock" title="What you send is encrypted on this page, for the person who shared the link. The server in between cannot read it.">Encrypted on this page</span>
+</header>
+<main>
+  <section id="intro">
+    <h1 id="title">Opening…</h1>
+    <p id="lede" class="muted"></p>
+  </section>
+
+  <section id="invite" hidden>
+    <ol class="steps">
+      <li><span>Get Point and Yap for Mac, free: <b>pointandyap.com</b> (macOS 26, Apple silicon).</span></li>
+      <li><span><a id="openApp" class="primary go" href="#">Open this invite in Point and Yap</a></span></li>
+      <li><span>Press Control twice, point and talk, press Control twice. It goes to <b id="inviteTo">them</b>.</span></li>
+    </ol>
+  </section>
+
+  <section id="stage" hidden>
+    <div class="frame" id="frame">
+      <img id="shot" alt="Screenshot shared for review" draggable="false">
+      <div id="pins"></div>
+      <div id="live" class="live" hidden><span class="dot"></span><span id="clock">0:00</span></div>
+    </div>
+    <div class="strip" id="strip" role="tablist" aria-label="Screenshots"></div>
+  </section>
+
+  <section id="panel" hidden>
+    <label class="name">Your name <input id="name" autocomplete="name" maxlength="40" placeholder="So they know who it is from"></label>
+
+    <div id="ready" class="row">
+      <button id="start" class="primary"><span class="rec"></span>Start talking</button>
+      <button id="typeMode" class="quiet">Type instead</button>
+      <p class="hint muted">Talk while you rest the pointer on what you mean: “this”, “here”, “that one”. Click to point too.</p>
+    </div>
+
+    <div id="recording" class="row" hidden>
+      <button id="stop" class="primary">Stop</button>
+      <button id="cancel" class="quiet">Cancel</button>
+      <p class="hint muted">Point at things on the screenshot while you talk. Switch screenshots below.</p>
+    </div>
+
+    <div id="typing" hidden>
+      <textarea id="text" rows="4" maxlength="5000" placeholder="Click the screenshot to drop a [1] where you mean, then say what should change."></textarea>
+      <div class="row">
+        <button id="sendText" class="primary">Send privately</button>
+        <button id="talkMode" class="quiet">Talk instead</button>
+      </div>
+    </div>
+
+    <div id="review" class="row" hidden>
+      <span id="summary" class="summary"></span>
+      <button id="send" class="primary">Send privately</button>
+      <button id="again" class="quiet">Start over</button>
+    </div>
+
+    <div id="sent" hidden>
+      <p class="ok" id="sentText">Sent.</p>
+      <button id="more" class="quiet">Send more</button>
+    </div>
+    <p id="error" class="error" role="alert" hidden></p>
+  </section>
+</main>
+</body>
+</html>

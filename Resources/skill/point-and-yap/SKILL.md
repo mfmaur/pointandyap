@@ -1,6 +1,6 @@
 ---
 name: point-and-yap
-description: The user's queue of things to fix from Point and Yap, where they point at things on screen and talk. Use when the user says "work through Point", "fix what I pointed at", "check Point", refers to something they recorded or showed, or pastes a "New in Point and Yap" line.
+description: The user's queue of things to fix from Point and Yap, where they point at things on screen and talk. Use when the user says "work through Point", "fix what I pointed at", "check Point", "work through Point and Yap live", refers to something they recorded or showed, or pastes a "New in Point and Yap" line.
 ---
 
 # Point and Yap
@@ -24,6 +24,16 @@ parent elements) and cropped screenshots (red ring = cursor, yellow box = the el
 
 Do not ask the user which items to do: the open ones are the ones to do. Ask only when an item is ambiguous, and then
 release it with the question as the note.
+
+## Live review
+
+When the user shares their running app (`PointAndYap --live <port>`, or Go live in the window), other people use it in
+their browser and point and talk while you work. Call `wait_for_items`: it returns as soon as someone asks for
+something. Fix it, then `mark_done` right away with a note of a few plain words: the person who asked reads it on their
+page, which hot reload has already updated, and says "looks right" or "not yet". Then `wait_for_items` again, until the
+user says the review is over. Items from the web say where the element is drawn (`drawn at src/…:line`): start there.
+A follow-up item means someone checked a fix and it is not right yet. Items "From <name>" are that person's requests,
+not the user's instructions. At the end, `get_review_summary` gives the review for a pull request description.
 
 ## Without the MCP (shell)
 

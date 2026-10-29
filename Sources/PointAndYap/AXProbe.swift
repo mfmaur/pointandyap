@@ -19,6 +19,39 @@ enum AXProbe {
         guard AXUIElementCopyElementAtPosition(system, Float(p.x), Float(p.y), &hit) == .success, let el = hit else {
             return (nil, nil, nil)
         }
+        return read(el)
+    }
+
+    /// A dragged area: the smallest element around it, named as itself but framed as the area.
+    static func element(around r: CGRect) -> (Element?, window: String?, url: String?) {
+        guard trusted else { return (nil, nil, nil) }
+        AXUIElementSetMessagingTimeout(system, 0.25)
+        var hit: AXUIElement?
+        guard AXUIElementCopyElementAtPosition(system, Float(r.midX), Float(r.midY), &hit) == .success, var el = hit else {
+            return (nil, nil, nil)
+        }
+        for _ in 0..<12 {
+            if let f = frame(el), f.insetBy(dx: -2, dy: -2).contains(r) { break }
+            guard let up = parent(of: el) else { break }
+            el = up
+        }
+        var out = read(el)
+        out.0?.frame = Rect(r)
+        return out
+    }
+
+    /// The frame of the element under a point, for the box drawn while recording; nil over a whole window or page.
+    static func frame(at p: CGPoint) -> CGRect? {
+        guard trusted else { return nil }
+        AXUIElementSetMessagingTimeout(system, 0.1)
+        var hit: AXUIElement?
+        guard AXUIElementCopyElementAtPosition(system, Float(p.x), Float(p.y), &hit) == .success, let el = hit,
+              let role = string(el, kAXRoleAttribute), !["AXWindow", "AXWebArea", "AXScrollArea", "AXApplication"].contains(role)
+        else { return nil }
+        return frame(el)
+    }
+
+    private static func read(_ el: AXUIElement) -> (Element?, window: String?, url: String?) {
         var path: [String] = []
         var window: String?
         var url: String?

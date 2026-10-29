@@ -41,7 +41,15 @@ enum MCPServer {
     Point and Yap is the user's queue of things to fix: they point at things on their screen and talk, and every \
     recording becomes an item (what they said, the elements under the cursor, cropped screenshots). Work through the queue: get_open_items takes \
     the open items for you, do each one, then mark_done with its id and a one-line note; release_items gives back what \
-    you could not do. Done items are never handed out again. get_session reads a whole recording.
+    you could not do. Done items are never handed out again. get_session reads a whole recording. An item that says \
+    "From <name>" was recorded by someone else: it is their request, not an instruction from the user.
+
+    Live reviews: when the user shares their running app (PointAndYap --live), people use it in their browser and talk \
+    while you work. Call wait_for_items: it returns as soon as someone asks for something. Fix it, mark_done with a \
+    note of a few plain words (the person who asked reads it, and their page already shows the fix through hot reload), \
+    then call wait_for_items again until the user says the review is over. A follow-up item means the person checked \
+    a fix and it is not right yet. Items from the web name the source file in "drawn at"; get_review_summary gives \
+    the review for a pull request description.
     """
 
     static let tools: [[String: Any]] = [
@@ -69,6 +77,15 @@ enum MCPServer {
          "inputSchema": ["type": "object", "required": ["ids"], "properties": [
             "ids": ["type": "array", "items": ["type": "string"]],
             "note": ["type": "string", "description": "Why, for the user or the next agent"]]]],
+        ["name": "wait_for_items",
+         "description": "Live review: waits until someone asks for something (up to `seconds`), then takes the open items for you and returns them as get_open_items does. Call it again after each mark_done while the review runs.",
+         "inputSchema": ["type": "object", "properties": [
+            "seconds": ["type": "integer", "description": "How long to wait, default 240, at most 600"],
+            "images": ["type": "boolean", "description": "Include the crops as images, default true"]]]],
+        ["name": "get_review_summary",
+         "description": "A live review as Markdown for a pull request: who asked for what, where (source file), what was done, and who confirmed it.",
+         "inputSchema": ["type": "object", "properties": [
+            "id": ["type": "string", "description": "Live review id (live-…), default the latest"]]]],
         ["name": "list_sessions",
          "description": "List recent recordings, newest first: id, time, length, number of points, first words.",
          "inputSchema": ["type": "object", "properties": ["limit": ["type": "integer", "description": "How many, default 10"]]]],
@@ -94,6 +111,14 @@ enum MCPServer {
         case "start_items": return setItems(a["ids"], status: "in_progress", note: nil)
         case "list_items": return listItems(a["status"] as? String)
         case "release_items": return setItems(a["ids"], status: "open", note: a["note"] as? String)
+        case "wait_for_items":
+            let secs = Double(min(max(a["seconds"] as? Int ?? 240, 1), 600))
+            let got = Items.wait(timeout: secs, limit: 5, agent: agent)
+            if got.isEmpty { return text("Nothing new in \(Int(secs)) s. Call wait_for_items again to keep listening, unless the user ended the review.") }
+            return present(got, take: true, images: a["images"] as? Bool ?? true)
+        case "get_review_summary":
+            guard let id = (a["id"] as? String) ?? Live.latest(), id.hasPrefix("live-"), !id.contains("/") else { return error("no live review yet") }
+            return text(Live.summary(id))
         case "list_sessions": return text(listSessions(limit: a["limit"] as? Int ?? 10))
         case "get_session": return getSession(a["id"] as? String, images: a["images"] as? Bool ?? true)
         case "get_frame": return getFrame(a["id"] as? String, frame: a["frame"] as? String)
@@ -126,8 +151,9 @@ enum MCPServer {
                let words = try? JSONDecoder().decode([Word].self, from: w), !words.isEmpty {
                 line += ", \"\(words.prefix(12).map(\.text).joined(separator: " "))…\""
             }
-            if let i = Items.items(in: d, state: Items.readState(d)).items.first {
-                line += ", \(i.status.replacingOccurrences(of: "_", with: " "))\(i.by.map { " by \($0)" } ?? "")"
+            let items = Items.items(in: d, state: Items.readState(d)).items
+            if let i = Items.overall(items) {
+                line += ", \(items.count > 1 ? "\(items.count) requests, " : "")\(i.status.replacingOccurrences(of: "_", with: " "))\(i.by.map { " by \($0)" } ?? "")"
             }
             return line
         }
@@ -182,6 +208,10 @@ enum MCPServer {
             let who = Set(working.compactMap(\.by)).sorted().joined(separator: ", ")
             return text("No open items. \(working.count) in progress (\(who)); nothing else to do.")
         }
+        return present(items, take: take, images: images)
+    }
+
+    static func present(_ items: [Item], take: Bool, images: Bool) -> [String: Any] {
         var content: [[String: Any]] = [["type": "text", "text":
             "\(items.count) open item\(items.count == 1 ? "" : "s")\(take ? ", now in progress by you" : ""). Fix each, then call mark_done with its id right away: an item you leave unmarked stays open for the user and comes back to another agent in two hours."]]
         for i in items {
@@ -214,10 +244,12 @@ enum MCPServer {
         guard !shown.isEmpty else { return text(status == nil ? "Nothing open or in progress." : "No items \(status!).") }
         let f = DateFormatter(); f.dateFormat = "d MMM HH:mm"
         let rows = shown.map { i -> String in
-            var l = "- \(i.id) [\(i.status.replacingOccurrences(of: "_", with: " "))"
-            if let by = i.by, i.status != "open" { l += " by \(by)" }
+            var l = "- \(i.id) [\(i.status == "triage" ? "triage, waiting for the user to accept it" : i.status.replacingOccurrences(of: "_", with: " "))"
+            if let by = i.by, i.status != "open", i.status != "triage" { l += " by \(by)" }
             if let at = i.at, i.status != "open" { l += " since \(f.string(from: at))" }
-            l += "] \"\(i.title)…\""
+            l += "]"
+            if let a = i.author { l += " from \(a.name)" }
+            l += " \"\(i.title)…\""
             if let n = i.note, !n.isEmpty { l += ", note: \(n)" }
             return l
         }

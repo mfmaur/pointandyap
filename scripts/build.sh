@@ -24,6 +24,7 @@ cp Resources/AppIcon.icns "$APP/Contents/Resources/"
 cp Resources/Fonts/* "$APP/Contents/Resources/Fonts/"
 cp -R Resources/skill "$APP/Contents/Resources/"
 cp -R Resources/Sounds "$APP/Contents/Resources/"
+cp -R Resources/live "$APP/Contents/Resources/"
 mkdir -p "$APP/Contents/Resources/Welcome"
 cp Resources/Welcome/welcome.mp4 Resources/Welcome/welcome-poster.png "$APP/Contents/Resources/Welcome/"
 # Sparkle (updates), signed from the inside out as its documentation asks for apps built outside Xcode.
@@ -38,6 +39,9 @@ sign "$F/Updater.app"
 sign "$APP/Contents/Frameworks/Sparkle.framework"
 codesign --force --options runtime --timestamp --entitlements Resources/PointAndYap.entitlements \
   --sign "$CODESIGN_IDENTITY" "$APP"
+# A local build signed ad hoc (CODESIGN_IDENTITY=-) has no Team ID, and the hardened runtime then refuses to load
+# Sparkle: sign the whole bundle again without it.
+if [ "$CODESIGN_IDENTITY" = "-" ]; then codesign --force --deep --sign - "$APP"; fi
 codesign --verify --strict --verbose=2 "$APP"
 [ -n "${POINTANDYAP_NO_INSTALL:-}" ] && { echo "built $APP"; exit 0; }
 

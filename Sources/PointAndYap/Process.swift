@@ -9,7 +9,9 @@ enum Process {
             return "Point and Yap: no events.json in \(dir.path)"
         }
         var words: [Word] = []
-        let audio = dir.appendingPathComponent("audio.caf")
+        // audio.wav: a guest's recording from a review link.
+        let audio = ["audio.caf", "audio.wav"].map { dir.appendingPathComponent($0) }
+            .first { FileManager.default.fileExists(atPath: $0.path) } ?? dir.appendingPathComponent("audio.caf")
         let wordsFile = dir.appendingPathComponent("transcript.json")
         if let cached = try? Data(contentsOf: wordsFile), let w = try? JSONDecoder().decode([Word].self, from: cached) {
             words = w

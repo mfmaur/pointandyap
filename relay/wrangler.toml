@@ -1,0 +1,15 @@
+# The review-link relay: an end-to-end-encrypted mailbox (see worker.js). Its own Worker, deployable to any Cloudflare
+# account: add account_id, create the bucket (npx wrangler@4 r2 bucket create pointandyap-relay), deploy. Locally:
+# npx wrangler@4 dev (R2 is simulated on disk under .wrangler/).
+name = "pointandyap-relay"
+main = "worker.js"
+compatibility_date = "2026-09-01"
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+html_handling = "none"
+
+[[r2_buckets]]
+binding = "BLOBS"
+bucket_name = "pointandyap-relay"

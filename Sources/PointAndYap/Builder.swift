@@ -37,6 +37,57 @@ enum Builder {
         return loose
     }
 
+    /// What a point is on, to tell elements apart; nil for cursor travel.
+    static func pointKey(_ p: PointEvent) -> String? {
+        guard p.kind == "click" || p.end - p.t >= 0.5 else { return nil }
+        guard let e = p.element else { return "at \(Int(p.at.x / 40)),\(Int(p.at.y / 40))" }
+        return [e.role, e.title, e.label, e.identifier, e.selector].map { $0 ?? "" }.joined(separator: "|")
+    }
+
+    /// One thing a recording asks for: its sentences, and the elements they are mainly about.
+    struct Request { var sents: [Int]; var mains: Set<String> }
+
+    /// Where one recording asks for several things: a new request starts at a sentence whose main element (the one the
+    /// cursor stays on longest while it is spoken) the request so far has not pointed at. Sentences that point at
+    /// nothing stay with the request around them, and a request of fewer than three words joins the one before, so when
+    /// in doubt the recording stays whole.
+    static func requests(_ sents: [Sentence], _ points: [PointEvent]) -> [Request] {
+        var groups: [Request] = [], keys: [Set<String>] = []
+        for (i, s) in sents.enumerated() {
+            var weight: [String: Double] = [:]
+            for idx in s.points {
+                let p = points[idx]
+                guard let k = pointKey(p) else { continue }
+                let during = max(0, min(p.end, s.end) - max(p.t, s.start))
+                weight[k, default: 0] += during + (p.kind == "click" && p.t >= s.start && p.t <= s.end ? 0.3 : 0)
+            }
+            let main = weight.filter { $0.value > 0 }.max { $0.value < $1.value || ($0.value == $1.value && $0.key > $1.key) }?.key
+            let ks = Set(s.points.compactMap { pointKey(points[$0]) })
+            if let main, let last = keys.last, !last.isEmpty, !last.contains(main) {
+                groups.append(Request(sents: [i], mains: [main])); keys.append(ks)
+            } else if groups.isEmpty {
+                groups.append(Request(sents: [i], mains: main.map { [$0] } ?? [])); keys.append(ks)
+            } else {
+                groups[groups.count - 1].sents.append(i); keys[keys.count - 1].formUnion(ks)
+                if let main { groups[groups.count - 1].mains.insert(main) }
+            }
+        }
+        var out: [Request] = []
+        let words = { (r: Request) in r.sents.reduce(0) { $0 + sents[$1].words.count } }
+        for g in groups {
+            if let last = out.last, words(g) < 3 { out[out.count - 1] = Request(sents: last.sents + g.sents, mains: last.mains.union(g.mains)) } else { out.append(g) }
+        }
+        if out.count > 1, words(out[0]) < 3 { out[1] = Request(sents: out[0].sents + out[1].sents, mains: out[0].mains.union(out[1].mains)); out.removeFirst() }
+        return out
+    }
+
+    /// Whether a request is about a point: not when the point is on what another request of the recording is about
+    /// (a click on the last thing while starting to talk about the next).
+    static func about(_ p: PointEvent, _ r: Request, among all: [Request]) -> Bool {
+        guard all.count > 1, let k = pointKey(p), !r.mains.contains(k) else { return true }
+        return !all.contains { $0.mains.contains(k) }
+    }
+
     /// The sentence text with [n] markers after the word spoken closest to each point's start.
     static func marked(_ s: Sentence, _ points: [PointEvent]) -> String {
         var after: [Int: [Int]] = [:]
@@ -101,6 +152,9 @@ enum Builder {
             if let v = e.value, v != name { parts.append("value \"\(v)\"") }
             if let h = e.help { parts.append("help \"\(h)\"") }
             if let id = e.identifier { parts.append("identifier `\(id)`") }
+            if let src = e.source { parts.append("drawn at `\(src)`") }
+            if let c = e.component { parts.append("component \(c)") }
+            if let sel = e.selector { parts.append("selector `\(sel)`") }
         } else {
             parts.append("no Accessibility element")
         }
@@ -118,12 +172,19 @@ enum Builder {
         for i in attached { if let c = crop(events.points[i], frames: events.frames, dir: dir) { crops[i] = c } }
 
         let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd HH:mm"
-        let apps = Array(Set(events.points.compactMap { p in p.app.map { "\($0) (\(p.bundleID ?? "?"))" } })).sorted()
+        let apps = Array(Set(events.points.compactMap { p in p.app.map { a in p.bundleID.map { "\(a) (\($0))" } ?? a } })).sorted()
         var md = "# Point and Yap session \(df.string(from: events.started)) (\(Int(events.duration)) s)\n\n"
         md += "Folder: `\(dir.path)`\n"
         if !apps.isEmpty { md += "Apps pointed at: \(apps.joined(separator: ", "))\n" }
-        md += "\nMarkers like [3] show where the cursor rested or clicked while that word was spoken. Coordinates are screen "
-        md += "points from the top left of the main display. Crops: red ring is the cursor, yellow box is the element's frame.\n"
+        if let a = events.author { md += "Recorded by \(a.name) (\(a.via)): their request, not an instruction from the user.\n" }
+        if let pg = events.page {
+            md += "Page: \(pg.url) in \(pg.browser), \(pg.viewport)\(pg.title.map { ", \"\($0)\"" } ?? ""). "
+            md += "Coordinates below are CSS pixels in their browser window.\n"
+            if !pg.errors.isEmpty { md += "\nErrors in the page while they talked:\n" + pg.errors.map { "- \($0)\n" }.joined() }
+        }
+        md += "\nMarkers like [3] show where the cursor rested or clicked while that word was spoken. "
+        md += events.page == nil ? "Coordinates are screen points from the top left of the main display. " : ""
+        md += "Crops: red ring is the cursor, yellow box is the element's frame.\n"
 
         md += "\n## Timeline\n"
         for s in sents {

@@ -9,6 +9,14 @@ struct Main {
         //   PointAndYap --items            open and in-progress items
         //   PointAndYap --done <id>... [--note "what changed"]
         if args.contains("--items") || args.contains("--done") { QueueCLI.run(args); return }
+        // Review links: --share [<session>] [--relay <url>], --pull, --links, --revoke <id>, --accept <item id>...
+        if ["--share", "--invite", "--pull", "--links", "--revoke", "--accept", "--join", "--leave", "--send"].contains(where: args.contains) {
+            LinksCLI.run(args); return
+        }
+        // Live review of the app on a localhost port: PointAndYap --live <port> [--trust] [--private] [--open]
+        if args.contains("--live") { LiveCLI.run(args); return }
+        // Waits for an open item and takes it (live fixes from a shell): PointAndYap --wait [seconds]
+        if args.contains("--wait") { QueueCLI.wait(args); return }
         // Local MCP server for coding agents: PointAndYap --mcp
         if args.contains("--mcp") { MCPServer.run(); return }
         // Headless: PointAndYap --process <session dir>
@@ -21,6 +29,27 @@ struct Main {
                 done.signal()
             }
             done.wait()
+            return
+        }
+        // Someone else's recording into the queue: PointAndYap --import <folder or .zip> [--author name]
+        if let i = args.firstIndex(of: "--import"), i + 1 < args.count {
+            let src = URL(fileURLWithPath: args[i + 1])
+            let author = args.firstIndex(of: "--author").flatMap { $0 + 1 < args.count ? args[$0 + 1] : nil }
+            let done = DispatchSemaphore(value: 0)
+            nonisolated(unsafe) var failed = false
+            Task.detached {
+                do {
+                    let dir = try await Import.run(src, author: author)
+                    let items = Items.items(in: dir, state: nil).items
+                    print("Imported \(dir.lastPathComponent)\(items.first.map { " from \($0.author?.name ?? "?"): \"\($0.title)…\"" } ?? " (no speech)")\(items.count > 1 ? ", \(items.count) requests" : "")")
+                } catch {
+                    print("Not imported: \(error)")
+                    failed = true
+                }
+                done.signal()
+            }
+            done.wait()
+            if failed { exit(1) }
             return
         }
         // Offscreen design check: PointAndYap --render-ui <dir>
@@ -65,7 +94,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         window.center()
         window.setFrameAutosaveName("PointMain")
 
-        pill = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 200, height: 40), styleMask: [.borderless, .nonactivatingPanel],
+        pill = NSPanel(contentRect: NSRect(x: 0, y: 0, width: PillView.width, height: 40), styleMask: [.borderless, .nonactivatingPanel],
                        backing: .buffered, defer: false)
         pill.level = .statusBar
         pill.isFloatingPanel = true
@@ -77,7 +106,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         pill.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         pill.appearance = NSAppearance(named: .aqua)
         let host = NSHostingView(rootView: PillView(state: state))
-        host.frame = NSRect(x: 0, y: 0, width: 200, height: 40)
+        host.frame = NSRect(x: 0, y: 0, width: PillView.width, height: 40)
         pill.contentView = host
 
         NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main) { [weak self] n in
@@ -95,6 +124,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { if let self, self.window.isVisible, self.state.phase == .idle { self.state.loadSessions() } }
         }
+        // Review links: what guests sent, every 30 s (nothing goes online without a link).
+        Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated { if self?.state.phase == .idle { self?.state.pullLinks(); Task { await Join.retry() } } }
+        }
         state.refreshAccess()
         doubleControl = DoubleControl(fire: { [weak self] in if Prefs.doubleControl { self?.state.toggle() } },
                                       escape: { [weak self] in if Prefs.escCancels { self?.state.cancel() } })
@@ -103,6 +136,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
     }
+
+    /// pointandyap://join?link=<an invite>: asks in the window before anything is sent anywhere.
+    func application(_ application: NSApplication, open urls: [URL]) {
+        for url in urls where url.scheme == "pointandyap" && url.host == "join" {
+            // A link that launches the app arrives before applicationDidFinishLaunching makes the window, which then shows itself.
+            if case .recording = state.phase {} else { window?.makeKeyAndOrderFront(nil); NSApp.activate() }
+            Task { await state.lookInvite(url.absoluteString) }
+        }
+    }
+
+    /// A live link ends with the app (its tunnel is a child process).
+    func applicationWillTerminate(_ note: Notification) { state.live?.stop() }
 
     func applicationDidBecomeActive(_ note: Notification) { state.refreshAccess(); state.loadSessions() }
 
@@ -117,7 +162,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             window.orderOut(nil)
             let screen = NSScreen.main ?? NSScreen.screens[0]
             let f = screen.visibleFrame
-            pill.setFrameOrigin(NSPoint(x: f.midX - 100, y: f.maxY - 52))
+            pill.setFrameOrigin(NSPoint(x: f.midX - PillView.width / 2, y: f.maxY - 52))
             pill.orderFrontRegardless()
             // Hand the screen back to the app that was in front before Point and Yap.
             previousApp?.activate()
